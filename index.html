@@ -19,8 +19,6 @@
     --green: #1d9e75;
     --red: #e24b4a;
     --blue: #378add;
-    --yellow: #d6a800;
-    --yellow-bg: #fff6cc;
     --green-bg: #eaf3de;
     --red-bg: #fcebeb;
     --blue-bg: #e6f1fb;
@@ -40,7 +38,6 @@
       --green-bg: #0a2e1e;
       --red-bg: #2e0a0a;
       --blue-bg: #0a1e2e;
-      --yellow-bg: #3a3008;
     }
   }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); padding: 16px; max-width: 780px; margin: 0 auto; }
@@ -83,10 +80,6 @@
   .signal-neutral { background: var(--bg2); color: var(--text2); }
   .signal-safe { background: var(--green-bg); color: var(--green); }
   .signal-risk { background: var(--red-bg); color: var(--red); }
-  .signal-watch { background: var(--yellow-bg); color: var(--yellow); }
-  .entry-score-strong { color: var(--green); }
-  .entry-score-watch { color: var(--yellow); }
-  .entry-score-skip { color: var(--red); }
   .ma-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 0.5px solid var(--border); }
   .ma-row:last-child { border-bottom: none; }
   .ma-key { color: var(--text2); }
@@ -124,19 +117,6 @@
   .safety-reasons { display: grid; gap: 6px; margin-top: 10px; }
   .safety-reason { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text2); border-top: 0.5px solid var(--border); padding-top: 7px; }
   .safety-reason strong { color: var(--text); font-weight: 600; }
-  .entry-rationale { margin-top: 10px; background: var(--bg2); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; line-height: 1.6; color: var(--text); }
-  .entry-rationale-title { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-  .entry-rationale-body { color: var(--text); }
-  .score-breakdown { display: grid; gap: 6px; margin-top: 10px; }
-  .score-row { display: grid; grid-template-columns: 88px 1fr 58px; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); border-top: 0.5px solid var(--border); padding-top: 7px; }
-  .score-row strong { color: var(--text); font-weight: 600; }
-  .score-bar { height: 6px; border-radius: 99px; background: var(--bg3); overflow: hidden; }
-  .score-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
-  .score-points { text-align: right; font-variant-numeric: tabular-nums; }
-  .trade-plan { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
-  .trade-cell { background: var(--bg2); border-radius: var(--radius); padding: 9px 10px; min-width: 0; }
-  .trade-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-  .trade-value { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .risk-note { margin-top: 10px; color: var(--text3); font-size: 11px; line-height: 1.5; }
   .summary-panel { display: grid; gap: 10px; font-size: 13px; line-height: 1.55; color: var(--text); }
   .summary-verdict { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 0.5px solid var(--border); }
@@ -169,8 +149,6 @@
     .risk-controls { grid-template-columns: 1fr; }
     .safety-grid { grid-template-columns: repeat(2, 1fr); }
     .summary-grid { grid-template-columns: 1fr; }
-    .trade-plan { grid-template-columns: repeat(2, 1fr); }
-    .score-row { grid-template-columns: 72px 1fr 52px; }
     .alert-form { display: grid; grid-template-columns: 1fr; }
     .alert-form select, .alert-form input[type=number], .alert-form button { width: 100%; }
     .candle-canvas-wrap { height: 220px; }
@@ -191,6 +169,7 @@
   <div class="header-right">
     <span class="last-updated" id="last-updated">--</span>
     <div class="live-badge"><div class="live-dot"></div>ライブ</div>
+    <a class="btn" href="guide.html" target="_blank" rel="noopener" style="text-decoration:none;">？ 使い方</a>
     <button class="btn" onclick="refreshAll()">↻ 更新</button>
   </div>
 </div>
@@ -247,10 +226,6 @@
       <div class="safety-value" id="safety-direction">--</div>
     </div>
     <div class="safety-cell">
-      <div class="safety-label">エントリー</div>
-      <div class="safety-value" id="safety-entry">--</div>
-    </div>
-    <div class="safety-cell">
       <div class="safety-label">損切り幅</div>
       <div class="safety-value" id="safety-stop-gap">--</div>
     </div>
@@ -267,23 +242,10 @@
       <div class="safety-value" id="safety-size">--</div>
     </div>
   </div>
-  <div class="entry-rationale" id="entry-rationale">
-    <div class="entry-rationale-title">エントリー根拠</div>
-    <div class="entry-rationale-body" id="entry-rationale-body">分析中...</div>
-  </div>
-  <div class="trade-plan" id="trade-plan">
-    <div class="trade-cell"><div class="trade-label">エントリー</div><div class="trade-value" id="plan-entry">--</div></div>
-    <div class="trade-cell"><div class="trade-label">損切り</div><div class="trade-value" id="plan-stop">--</div></div>
-    <div class="trade-cell"><div class="trade-label">利確</div><div class="trade-value" id="plan-target">--</div></div>
-    <div class="trade-cell"><div class="trade-label">推奨数量</div><div class="trade-value" id="plan-size">--</div></div>
-  </div>
-  <div class="score-breakdown" id="score-breakdown">
-    <div class="score-row"><strong>内訳</strong><div class="score-bar"><div class="score-bar-fill" style="width:0;background:var(--blue);"></div></div><span class="score-points">計算中</span></div>
-  </div>
   <div class="safety-reasons" id="safety-reasons">
     <div class="safety-reason"><span>データ</span><strong>計算中...</strong></div>
   </div>
-  <div class="risk-note">確実性ではなく、損失上限と見送り条件を先に決めるための補助表示です。点数と根拠文は補助指標で、投資判断を保証するものではありません。</div>
+  <div class="risk-note">確実性ではなく、損失上限と見送り条件を先に決めるための補助表示です。</div>
 </div>
 
 <div class="card">
@@ -428,7 +390,7 @@
   </div>
 </div>
 
-<div class="footer">※ CoinGecko APIを優先し、接続できない場合はCoincheck/bitFlyerの公開APIに自動切替。60秒ごと自動更新。投資アドバイスではありません。</div>
+<div class="footer">※ CoinGecko API より取得。60秒ごと自動更新。投資アドバイスではありません。</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -447,7 +409,6 @@ let usingFallbackPrice = false;
 let usingFallbackHistory = false;
 let usingCachedPrice = false;
 let usingCachedHistory = false;
-let activePriceSource = 'CoinGecko';
 
 const PRICE_CACHE_KEY = 'btc_price_cache_v2';
 const HISTORY_CACHE_KEY = 'btc_history_cache_v2';
@@ -498,7 +459,6 @@ function updateDataBanner() {
   if (!banner) return;
 
   const messages = [];
-  if (activePriceSource && activePriceSource !== 'CoinGecko' && !usingCachedPrice && !usingFallbackPrice) messages.push('公開APIで価格を補完しています。');
   if (usingCachedPrice) messages.push('価格APIに接続できないため、直近成功データを表示しています。');
   if (usingCachedHistory) messages.push('履歴APIに接続できないため、直近成功チャートを表示しています。');
   if (usingFallbackPrice) messages.push('価格APIに接続できないため、参考値で表示しています。');
@@ -557,77 +517,6 @@ function setSafetyText(id, value) {
   if (el) el.textContent = value;
 }
 
-function setTradeText(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = value;
-}
-function formatSignedPoint(n) {
-  return (n >= 0 ? '+' : '') + n + '点';
-}
-function getEntryGrade(score) {
-  if (score >= 80) return { label: '🟢 強気', statusText: '🟢 強気', className: 'signal signal-safe', scoreClass: 'entry-score-strong', color: 'var(--green)' };
-  if (score >= 60) return { label: '🟡 検討', statusText: '🟡 検討', className: 'signal signal-watch', scoreClass: 'entry-score-watch', color: 'var(--yellow)' };
-  return { label: '🔴 見送り', statusText: '🔴 見送り', className: 'signal signal-risk', scoreClass: 'entry-score-skip', color: 'var(--red)' };
-}
-function renderScoreBreakdown(parts, total) {
-  const el = document.getElementById('score-breakdown');
-  if (!el) return;
-  const rows = parts.map(part => {
-    const width = Math.min(100, Math.round(Math.abs(part.points) / Math.max(1, part.maxAbs) * 100));
-    const color = part.points > 0 ? 'var(--green)' : part.points < 0 ? 'var(--red)' : 'var(--text3)';
-    return `
-      <div class="score-row">
-        <strong>${part.label}</strong>
-        <div class="score-bar"><div class="score-bar-fill" style="width:${width}%;background:${color};"></div></div>
-        <span class="score-points" style="color:${color};">${formatSignedPoint(part.points)}</span>
-      </div>
-    `;
-  }).join('');
-  const grade = getEntryGrade(total);
-  el.innerHTML = `
-    <div class="score-row">
-      <strong>合計</strong>
-      <div class="score-bar"><div class="score-bar-fill" style="width:${total}%;background:${grade.color};"></div></div>
-      <span class="score-points ${grade.scoreClass}">${total}点</span>
-    </div>
-    ${rows}
-  `;
-}
-function generateEntryRationale({ grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25, volChange, volatility, rr, nearResistance, nearSupport, current, stop, target, size, dataState }) {
-  const positives = [];
-  const cautions = [];
-  if (ma5 && ma25) {
-    if (ma5 > ma25) positives.push('短期MAが中期MAを上回っており、短期トレンドは上向きです');
-    else cautions.push('短期MAが中期MAを下回っており、上値は重めです');
-  }
-  if (macdVal > 0) positives.push('MACDはプラス圏で、買い方向の勢いがあります');
-  else cautions.push('MACDはマイナス圏で、下落方向の勢いが残っています');
-  if (rsi >= 45 && rsi <= 65) positives.push('RSIは中立〜やや強めで、過熱しすぎていません');
-  else if (rsi >= 72) cautions.push('RSIが高く、短期的な買われ過ぎに注意が必要です');
-  else if (rsi <= 28) cautions.push('RSIが低く、売られ過ぎですが反転確認が必要です');
-  else cautions.push('RSIは明確な追い風ではありません');
-  if (volChange > 10) positives.push('出来高が増えており、値動きの信頼度が上がっています');
-  else if (volChange < -10) cautions.push('出来高が弱く、ブレイクの信頼度は低めです');
-  if (nearResistance) cautions.push('レジスタンスが近く、利幅より反落リスクが目立ちます');
-  if (nearSupport) cautions.push('サポートが近く、ショートは反発リスクがあります');
-  if (volatility > 1.2) cautions.push('ボラティリティが高く、損切り幅が広がりやすい状態です');
-  else if (volatility <= 0.7) positives.push('ボラティリティは落ち着いており、リスク管理しやすい状態です');
-  if (rr >= 2) positives.push('リスクリワードは2倍以上で、損益バランスは良好です');
-  else if (rr < 1.5) cautions.push('リスクリワードが1.5倍未満で、無理に入る優位性は低めです');
-  if (dataState !== 'リアルタイム') cautions.unshift(dataState + 'のため、新規判断は慎重にしてください');
-  let action = '';
-  if (entryScore >= 80 && direction !== 'neutral') {
-    action = `${grade.label}。${directionLabel}で条件は比較的そろっています。入る場合はエントリー${fmt(current)}、損切り${fmt(stop)}、利確${fmt(target)}を目安に、推奨数量${size.toFixed(5)} BTC以内で検討します。`;
-  } else if (entryScore >= 60 && direction !== 'neutral') {
-    action = `${grade.label}。${directionLabel}ですが、まだ確認待ちの材料があります。すぐに飛び乗るより、押し目・戻り・出来高の増加を確認してから、数量を抑えて検討する場面です。`;
-  } else {
-    action = `${grade.label}。現時点では優位性が十分ではないため、見送りを優先します。方向感がそろうまで待ち、無理なエントリーは避ける場面です。`;
-  }
-  const positiveText = positives.length ? `好材料は「${positives.slice(0, 3).join('」「')}」です。` : '明確な好材料はまだ少ない状態です。';
-  const cautionText = cautions.length ? `注意点は「${cautions.slice(0, 3).join('」「')}」です。` : '大きな警戒材料は限定的です。';
-  return `${action} ${positiveText} ${cautionText}`;
-}
-
 function updateSafetyPanel() {
   const status = document.getElementById('safety-status');
   const reasonsEl = document.getElementById('safety-reasons');
@@ -639,17 +528,10 @@ function updateSafetyPanel() {
     status.textContent = 'データ待ち';
     setSafetyText('safety-score', '--');
     setSafetyText('safety-direction', '--');
-    setSafetyText('safety-entry', '--');
     setSafetyText('safety-stop-gap', '--');
     setSafetyText('safety-stop', '--');
     setSafetyText('safety-target', '--');
     setSafetyText('safety-size', '--');
-    setTradeText('plan-entry', '--');
-    setTradeText('plan-stop', '--');
-    setTradeText('plan-target', '--');
-    setTradeText('plan-size', '--');
-    setTradeText('entry-rationale-body', '価格データと履歴データを取得中です。取得後にエントリー根拠を自動生成します。');
-    renderScoreBreakdown([], 0);
     reasonsEl.innerHTML = '<div class="safety-reason"><span>データ</span><strong>取得中</strong></div>';
     return;
   }
@@ -670,12 +552,8 @@ function updateSafetyPanel() {
   const atr = Math.max(calcATR(priceHistory, 14), current * 0.002);
   const atrPct = atr / current * 100;
   const mom = calcMomentum(priceHistory, 10);
-  const volatility = calcVolatility(priceHistory, 14);
-  const volChange = calcVolumeStrength(volumeHistory);
   const support = bb ? bb.lower : current * 0.98;
   const resistance = bb ? bb.upper : current * 1.02;
-  const nearResistanceForEntry = ((resistance - current) / Math.max(1, current)) * 100 < volatility;
-  const nearSupportForEntry = ((current - support) / Math.max(1, support)) * 100 < volatility;
 
   let trendScore = 0;
   trendScore += macdVal > 0 ? 1 : -1;
@@ -720,50 +598,30 @@ function updateSafetyPanel() {
   else if (riskPct > 1.5) score -= 8;
   if (balance <= 0) score -= 30;
   score = Math.round(clamp(score, 0, 100));
-  const scoreParts = [
-    { label: 'MA', points: ma5 && ma25 ? (ma5 > ma25 ? 20 : -20) : 0, maxAbs: 20 },
-    { label: 'MACD', points: macdVal > 0 ? 15 : -15, maxAbs: 15 },
-    { label: 'RSI', points: (rsi >= 45 && rsi <= 65) ? 10 : (rsi >= 72 || rsi <= 28) ? -15 : -5, maxAbs: 15 },
-    { label: '出来高', points: volChange > 10 ? 10 : volChange < -10 ? -10 : 0, maxAbs: 10 },
-    { label: 'サポレジ', points: nearResistanceForEntry ? -10 : nearSupportForEntry ? -10 : 5, maxAbs: 10 },
-    { label: 'ボラ', points: volatility > 1.2 ? -15 : volatility > 0.7 ? -7 : 5, maxAbs: 15 },
-    { label: 'RR', points: rr >= 2 ? 10 : rr < 1.5 ? -10 : 0, maxAbs: 10 }
-  ];
-  let entryScore = Math.round(clamp(50 + scoreParts.reduce((sum, part) => sum + part.points, 0), 0, 100));
-  if (usingFallbackPrice || usingFallbackHistory) entryScore = Math.min(entryScore, 59);
-  else if (usingCachedPrice || usingCachedHistory) entryScore = Math.min(entryScore, 79);
-  const grade = getEntryGrade(entryScore);
-  status.className = grade.className;
-  status.textContent = grade.statusText;
-  const scoreEl = document.getElementById('safety-score');
-  if (scoreEl) {
-    scoreEl.textContent = entryScore + ' / 100 ' + grade.label;
-    scoreEl.className = 'safety-value ' + grade.scoreClass;
+
+  if (score >= 75 && direction !== 'neutral') {
+    status.className = 'signal signal-safe';
+    status.textContent = '条件良好・小さく検討';
+  } else if (score >= 55) {
+    status.className = 'signal signal-neutral';
+    status.textContent = '条件待ち';
+  } else {
+    status.className = 'signal signal-risk';
+    status.textContent = '見送り優先';
   }
-  renderScoreBreakdown(scoreParts, entryScore);
+
+  setSafetyText('safety-score', score + ' / 100');
   setSafetyText('safety-direction', directionLabel);
-  setSafetyText('safety-entry', direction === 'neutral' ? '--' : fmt(current));
   setSafetyText('safety-stop-gap', fmtSmall(riskDistance) + ' (' + (riskDistance / current * 100).toFixed(2) + '%)');
   setSafetyText('safety-stop', direction === 'neutral' ? '--' : fmt(stop));
   setSafetyText('safety-target', direction === 'neutral' ? '--' : fmt(target));
   setSafetyText('safety-size', direction === 'neutral' ? '--' : size.toFixed(5) + ' BTC');
-  setTradeText('plan-entry', direction === 'neutral' ? '--' : fmt(current));
-  setTradeText('plan-stop', direction === 'neutral' ? '--' : fmt(stop));
-  setTradeText('plan-target', direction === 'neutral' ? '--' : fmt(target));
-  setTradeText('plan-size', direction === 'neutral' ? '--' : size.toFixed(5) + ' BTC');
-  const dataState = usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム';
-  setTradeText('entry-rationale-body', generateEntryRationale({
-    grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25,
-    volChange, volatility, rr, nearResistance: nearResistanceForEntry,
-    nearSupport: nearSupportForEntry, current, stop, target, size, dataState
-  }));
 
   const reasons = [
     ['データ', usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム'],
     ['トレンド', directionLabel + ' (' + trendScore + ')'],
     ['過熱感', 'RSI ' + rsi.toFixed(1)],
     ['ボラ', 'ATR ' + atrPct.toFixed(2) + '%'],
-    ['判定', entryScore + '点 / ' + grade.label],
     ['RR', rr.toFixed(2) + ' : 1'],
     ['損失上限', fmt(riskYen) + ' / 回']
   ];
@@ -828,7 +686,7 @@ function applyPriceData(btc, source = 'live') {
   volumeHistory = [...volumeHistory.slice(-19), vol || 0];
 
   const now = new Date();
-  const suffix = source === 'cached' ? ' キャッシュ' : source === 'fallback' ? ' 参考値' : ' ' + (activePriceSource || '更新');
+  const suffix = source === 'cached' ? ' キャッシュ' : source === 'fallback' ? ' 参考値' : ' 更新';
   document.getElementById('last-updated').textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0') + suffix;
 
   usingFallbackPrice = source === 'fallback';
@@ -836,39 +694,6 @@ function applyPriceData(btc, source = 'live') {
   updateDataBanner();
   updateSafetyPanel();
   checkAlerts(currentPrice);
-}
-
-
-async function fetchExternalJson(url, retries = 1) {
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (e) {
-      if (attempt < retries) { await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); continue; }
-      throw e;
-    } finally { clearTimeout(timeout); }
-  }
-}
-async function fetchAlternativePrice() {
-  try {
-    const cc = await fetchExternalJson('https://coincheck.com/api/ticker?pair=btc_jpy', 1);
-    if (cc && cc.last) {
-      activePriceSource = 'Coincheck';
-      return { jpy: Number(cc.last), jpy_24h_change: 0, jpy_24h_vol: Number(cc.volume || 0) * Number(cc.last), jpy_24h_high: Number(cc.high || cc.last), jpy_24h_low: Number(cc.low || cc.last) };
-    }
-  } catch (e) { console.warn('Coincheck fallback failed:', e); }
-  try {
-    const bf = await fetchExternalJson('https://api.bitflyer.com/v1/ticker?product_code=BTC_JPY', 1);
-    if (bf && bf.ltp) {
-      activePriceSource = 'bitFlyer';
-      return { jpy: Number(bf.ltp), jpy_24h_change: 0, jpy_24h_vol: Number(bf.volume_by_product || bf.volume || 0) * Number(bf.ltp), jpy_24h_high: Number(bf.ltp), jpy_24h_low: Number(bf.ltp) };
-    }
-  } catch (e) { console.warn('bitFlyer fallback failed:', e); }
-  return null;
 }
 
 async function fetchPrice() {
@@ -887,20 +712,14 @@ async function fetchPrice() {
     writeCache(PRICE_CACHE_KEY, { btc });
     applyPriceData(btc, 'live');
   } catch (e) {
-    console.error('CoinGecko fetchPrice error:', e);
-    const alt = await fetchAlternativePrice();
-    if (alt) {
-      writeCache(PRICE_CACHE_KEY, { btc: alt });
-      applyPriceData(alt, 'live');
-      return;
-    }
+    console.error('fetchPrice error:', e);
+
     const cached = readCache(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE);
     if (cached && cached.btc) {
-      activePriceSource = 'キャッシュ';
       applyPriceData(cached.btc, 'cached');
       return;
     }
-    activePriceSource = '参考値';
+
     applyPriceData(FALLBACK_PRICE, 'fallback');
   }
 }
@@ -936,23 +755,6 @@ async function fetchHistory() {
   } catch (e) {
     console.error('fetchHistory error:', e);
 
-    if (currentPrice) {
-      const previous = Array.isArray(priceHistory) && priceHistory.length ? priceHistory.slice(-95) : buildFallbackHistory(currentPrice).slice(-95);
-      priceHistory = [...previous, currentPrice];
-      const labels = priceHistory.map((_, i) => {
-        const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * 300000);
-        return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
-      });
-      candleLabels = labels;
-      renderPriceChart(labels);
-      renderCandlestickChart();
-      renderMacdChart();
-      usingFallbackHistory = true;
-      usingCachedHistory = false;
-      updateDataBanner();
-      updateIndicators();
-      return;
-    }
     const cached = readCache(HISTORY_CACHE_KEY + '_' + currentTF, HISTORY_CACHE_MAX_AGE);
     if (cached && Array.isArray(cached.priceHistory) && cached.priceHistory.length && Array.isArray(cached.labels)) {
       priceHistory = cached.priceHistory;
@@ -966,6 +768,7 @@ async function fetchHistory() {
       updateIndicators();
       return;
     }
+
     priceHistory = buildFallbackHistory(currentPrice || FALLBACK_PRICE.jpy);
     const labels = priceHistory.map((_, i) => {
       const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * 300000);
@@ -1550,5 +1353,6 @@ renderAlerts();
 refreshAll();
 startAutoRefresh();
 </script>
+<script src="guide-widget.js"></script>
 </body>
 </html>
