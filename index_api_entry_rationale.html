@@ -498,7 +498,7 @@ function updateDataBanner() {
   if (!banner) return;
 
   const messages = [];
-  if (activePriceSource && activePriceSource !== 'CoinGecko' && !usingCachedPrice && !usingFallbackPrice) messages.push(activePriceSource + ' の価格データで表示しています。');
+  if (activePriceSource && activePriceSource !== 'CoinGecko' && !usingCachedPrice && !usingFallbackPrice) messages.push('公開APIで価格を補完しています。');
   if (usingCachedPrice) messages.push('価格APIに接続できないため、直近成功データを表示しています。');
   if (usingCachedHistory) messages.push('履歴APIに接続できないため、直近成功チャートを表示しています。');
   if (usingFallbackPrice) messages.push('価格APIに接続できないため、参考値で表示しています。');
@@ -670,8 +670,12 @@ function updateSafetyPanel() {
   const atr = Math.max(calcATR(priceHistory, 14), current * 0.002);
   const atrPct = atr / current * 100;
   const mom = calcMomentum(priceHistory, 10);
+  const volatility = calcVolatility(priceHistory, 14);
+  const volChange = calcVolumeStrength(volumeHistory);
   const support = bb ? bb.lower : current * 0.98;
   const resistance = bb ? bb.upper : current * 1.02;
+  const nearResistanceForEntry = ((resistance - current) / Math.max(1, current)) * 100 < volatility;
+  const nearSupportForEntry = ((current - support) / Math.max(1, support)) * 100 < volatility;
 
   let trendScore = 0;
   trendScore += macdVal > 0 ? 1 : -1;
