@@ -4,48 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BTC/JPY ダッシュボード</title>
-
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ffffff">
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
+  .depth-container { display: flex; height: 160px; gap: 4px; padding: 10px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 12px; }
+  .depth-side { flex: 1; display: flex; flex-direction: column-reverse; gap: 1px; }
+  .depth-bar { height: 12px; font-size: 8px; color: #fff; display: flex; align-items: center; padding: 0 4px; transition: width 0.3s; }
+  .depth-buy { background: var(--green); align-self: flex-end; }
+  .depth-sell { background: var(--red); }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #ffffff;
-    --bg2: #f5f5f5;
-    --bg3: #ececec;
-    --text: #111111;
-    --text2: #555555;
-    --text3: #999999;
-    --border: rgba(0,0,0,0.1);
-    --border2: rgba(0,0,0,0.18);
-    --green: #1d9e75;
-    --red: #e24b4a;
-    --blue: #378add;
-    --yellow: #d6a800;
-    --yellow-bg: #fff6cc;
-    --green-bg: #eaf3de;
-    --red-bg: #fcebeb;
-    --blue-bg: #e6f1fb;
-    --radius: 8px;
-    --radius-lg: 12px;
+    --bg: #ffffff; --bg2: #f5f5f5; --bg3: #ececec;
+    --text: #111111; --text2: #555555; --text3: #999999;
+    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+    --green: #1d9e75; --red: #e24b4a; --blue: #378add; --yellow: #d6a800;
+    --yellow-bg: #fff6cc; --green-bg: #eaf3de; --red-bg: #fcebeb; --blue-bg: #e6f1fb;
+    --radius: 8px; --radius-lg: 12px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1a1a1a;
-      --bg2: #242424;
-      --bg3: #2e2e2e;
-      --text: #f0f0f0;
-      --text2: #aaaaaa;
-      --text3: #666666;
-      --border: rgba(255,255,255,0.1);
-      --border2: rgba(255,255,255,0.18);
-      --green-bg: #0a2e1e;
-      --red-bg: #2e0a0a;
-      --blue-bg: #0a1e2e;
-      --yellow-bg: #3a3008;
+      --bg: #1a1a1a; --bg2: #242424; --bg3: #2e2e2e;
+      --text: #f0f0f0; --text2: #aaaaaa; --text3: #666666;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+      --green-bg: #0a2e1e; --red-bg: #2e0a0a; --blue-bg: #0a1e2e; --yellow-bg: #3a3008;
     }
   }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); padding: 16px; max-width: 780px; margin: 0 auto; }
@@ -335,6 +320,14 @@
   <div class="risk-note">確実性ではなく、統計的な有意差と損失上限を先に決めるための補助指標です。投資判断を保証するものではありません。</div>
 
   <button class="btn" onclick="logCurrentTrade('手動記録')" style="width: 100%; margin-top: 12px; background: var(--bg2); padding: 8px;">📝 現在の指標とスコアをジャーナルに記録</button>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">🛡️ リアルタイムオーダーブック (買い壁 vs 売り壁)</span></div>
+  <div class="depth-container">
+    <div class="depth-side" id="depth-buys"></div>
+    <div class="depth-side" id="depth-sells" style="flex-direction: column;"></div>
+  </div>
 </div>
 
 <div class="card">
@@ -1583,13 +1576,20 @@ async function fetchHistory() {
     updateDataBanner(); updateIndicators(); updateSafetyPanel();
   } catch (e) {
     console.error('fetchHistory error:', e);
+    
+    let stepMs = 300000;
+    if (currentTF === '1m') stepMs = 60000;
+    if (currentTF === '1h') stepMs = 3600000;
+    if (currentTF === '1d') stepMs = 86400000;
+
     if (currentPrice) {
       const previous = Array.isArray(priceHistory) && priceHistory.length ? priceHistory.slice(-95) : buildFallbackHistory(currentPrice).slice(-95);
       priceHistory = [...previous, currentPrice];
       if (volumeHistory.length) volumeHistory = [...volumeHistory.slice(-95), volumeHistory[volumeHistory.length-1]];
       
       const labels = priceHistory.map((_, i) => {
-        const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * 300000);
+        const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * stepMs);
+        if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
         return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
       });
       candleLabels = labels;
@@ -1610,7 +1610,8 @@ async function fetchHistory() {
     priceHistory = buildFallbackHistory(currentPrice || FALLBACK_PRICE.jpy);
     volumeHistory = priceHistory.map(() => 0);
     const labels = priceHistory.map((_, i) => {
-      const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * 300000);
+      const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * stepMs);
+      if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
       return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
     });
     candleLabels = labels;
@@ -1620,10 +1621,26 @@ async function fetchHistory() {
   }
 }
 
+// オーダーブックの描画処理
+function updateOrderBook(bids, asks) {
+  const buyEl = document.getElementById('depth-buys');
+  const sellEl = document.getElementById('depth-sells');
+  if(!buyEl || !sellEl) return;
+  
+  buyEl.innerHTML = bids.map(b => `
+    <div class="depth-bar depth-buy" style="width: ${Math.min(100, b[1]*100)}%">${Math.round(b[0])}</div>
+  `).join('');
+  
+  sellEl.innerHTML = asks.map(a => `
+    <div class="depth-bar depth-sell" style="width: ${Math.min(100, a[1]*100)}%">${Math.round(a[0])}</div>
+  `).join('');
+}
+
 function initWebSocket() {
   if (ws) { ws.onclose = null; ws.close(); }
   const wsBadge = document.getElementById('ws-status');
-  ws = new WebSocket('wss://stream.binance.com:9443/ws/btcjpy@ticker');
+  // TickerとDepth(オーダーブック)を同時購読
+  ws = new WebSocket('wss://stream.binance.com:9443/ws/btcjpy@ticker/btcjpy@depth10@100ms');
   
   ws.onopen = () => {
     if (wsBadge) wsBadge.classList.add('ws-active');
@@ -1632,7 +1649,7 @@ function initWebSocket() {
   ws.onmessage = (msg) => {
     try {
       const data = JSON.parse(msg.data);
-      if (data && data.c) {
+      if (data && data.c) { // Tickerデータ
         const price = parseFloat(data.c);
         const vol = parseFloat(data.v); 
         
@@ -1665,6 +1682,8 @@ function initWebSocket() {
             throttleTimer = null;
           }, 1000);
         }
+      } else if (data.bids) { // Depthデータ
+        updateOrderBook(data.bids, data.asks);
       }
     } catch (e) { console.error('WS parse error', e); }
   };
