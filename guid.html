@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>使い方・マニュアル | BTC/JPY ダッシュボード</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f5; --bg3: #ececec;
+    --text: #111111; --text2: #555555; --text3: #999999;
+    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+    --green: #1d9e75; --red: #e24b4a; --blue: #378add; --yellow: #d6a800;
+    --yellow-bg: #fff6cc; --green-bg: #eaf3de; --red-bg: #fcebeb; --blue-bg: #e6f1fb;
+    --radius: 8px; --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --bg2: #242424; --bg3: #2e2e2e;
+      --text: #f0f0f0; --text2: #aaaaaa; --text3: #666666;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+      --green-bg: #0a2e1e; --red-bg: #2e0a0a; --blue-bg: #0a1e2e; --yellow-bg: #3a3008;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); padding: 16px; max-width: 780px; margin: 0 auto; line-height: 1.6; }
+  .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 0.5px solid var(--border); margin-bottom: 24px; }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .btc-badge { width: 36px; height: 36px; border-radius: 50%; background: #f7931a; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .ticker { font-size: 20px; font-weight: 600; color: var(--text); }
+  .subtitle { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .btn { font-size: 12px; padding: 6px 14px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); cursor: pointer; text-decoration: none; transition: background 0.15s; display: inline-block; font-weight: 500; }
+  .btn:hover { background: var(--bg2); }
+  
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; }
+  h2 { font-size: 18px; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; border-bottom: 0.5px solid var(--border); padding-bottom: 10px; }
+  h3 { font-size: 15px; margin: 20px 0 8px; color: var(--text); }
+  p { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
+  
+  .feature-box { background: var(--bg2); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .feature-title { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .feature-desc { font-size: 13px; color: var(--text2); }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+  .badge-stat { background: var(--blue-bg); color: var(--blue); }
+  .badge-risk { background: var(--red-bg); color: var(--red); }
+  .badge-tech { background: var(--yellow-bg); color: var(--yellow); }
+
+  ul { padding-left: 20px; margin-bottom: 12px; font-size: 14px; color: var(--text2); }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text); }
+  .footer { font-size: 12px; color: var(--text3); text-align: center; padding: 20px 0; margin-top: 20px; border-top: 0.5px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="btc-badge">₿</div>
+    <div>
+      <div class="ticker">使い方・マニュアル</div>
+      <div class="subtitle">BTC/JPY 統計ダッシュボード</div>
+    </div>
+  </div>
+  <div>
+    <a href="index.html" class="btn">← ダッシュボードへ戻る</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📊 1. 統計分析（ダマシを見抜く武器）</h2>
+  <p>相場の「感覚的な上がりすぎ・下がりすぎ」を、数学的な確率（正規分布）で客観的に判断するための機能です。</p>
+  
+  <div class="feature-box">
+    <div class="feature-title"><span class="badge badge-stat">Zスコア</span> 価格の異常値検定</div>
+    <div class="feature-desc">
+      現在の価格が、過去の平均値から「標準偏差（σ）の何個分」離れているかを示します。<br>
+      <strong>Zスコアが +2.0 を超えた場合：</strong> 上位約2.5%しか起こらない異常な上昇（買われすぎ）を意味し、反落リスクが高まります。<br>
+      <strong>Zスコアが -2.0 を下回った場合：</strong> 売られすぎ水準に達しており、反発の期待値が高いと判断できます。
+    </div>
+  </div>
+
+  <div class="feature-box">
+    <div class="feature-title"><span class="badge badge-stat">出来高 Zスコア</span> トレンドの信頼性</div>
+    <div class="feature-desc">
+      出来高（取引量）の急増を統計的に検定します。<br>
+      価格が急ブレイクしても、このスコアが低い場合は「ダマシ（フェイク）」の可能性が高いです。逆に <strong>+2.0以上</strong> を記録した場合は、大口が参加している「本物のトレンド」と判断できます。
+    </div>
+  </div>
+
+  <div class="feature-box">
+    <div class="feature-title"><span class="badge badge-stat">95%予測帯</span> チャート上の青いバンド</div>
+    <div class="feature-desc">
+      現在のボラティリティを基準に、「次に価格が動くとしたら、95%の確率でこの帯の中に収まる」という予測範囲です。この帯をローソク足がぶち抜いた場合は、相場の前提が変わった強いシグナルとなります。
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🛡️ 2. トレード安全チェック（資金管理）</h2>
+  <p>「どこで買うか」以上に重要な<strong>「いくら買うか（ロット管理）」</strong>を自動計算します。一発退場を防ぐための心臓部です。</p>
+
+  <div class="feature-box">
+    <div class="feature-title"><span class="badge badge-risk">上限数量</span> 適正ロットの自動逆算</div>
+    <div class="feature-desc">
+      あなたの「想定資金」と「許容損失（％）」を守るために、<strong>今回は最大何BTCまで買っていいか</strong>を逆算します。<br>
+      荒れ相場（ボラティリティが高い時）は損切り幅を広く取る必要があるため、自動的に推奨される上限数量が小さくなります。
+    </div>
+  </div>
+
+  <div class="feature-box">
+    <div class="feature-title"><span class="badge badge-risk">リスクリワード (RR)</span></div>
+    <div class="feature-desc">
+      見込める利益（リワード）が、想定される損失（リスク）の何倍あるかを示します。RRが 2.0 以上なら、勝率が低くてもトータルで資金は増えやすくなります。
+    </div>
+  </div>
+
+  <div class="feature-box">
+    <div class="feature-title"><span class="badge badge-risk">安全度スコア</span></div>
+    <div class="feature-desc">
+      各種テクニカル指標、統計データ、RRを総合して100点満点で採点します。「75点以上でエントリーする」などのマイルールを決めることで、無駄なトレード（ポジポジ病）を防ぎます。
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📈 3. 王道テクニカル指標</h2>
+  <p>他の多くのトレーダーも意識している、世界標準の分析ツールです。</p>
+
+  <div class="feature-box">
+    <div class="feature-title"><span class="badge badge-tech">RSI (14)</span> 相対力指数</div>
+    <div class="feature-desc">
+      70以上で過熱（買われすぎ）、30以下で売られすぎ。Zスコアと合わせて「RSIが75かつZスコアが+2.5」などの重複シグナルが出たら、非常に強い反転サインになります。
+    </div>
+  </div>
+
+  <div class="feature-box">
+    <div class="feature-title"><span class="badge badge-tech">MACD & 移動平均線 (MA)</span></div>
+    <div class="feature-desc">
+      MACDがゼロラインより上か、MA5（短期）がMA25（中期）の上にあるかで、短期的なトレンドの方向を決定します。
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🧪 4. 実戦・検証ツール</h2>
+  <p>自分だけの「勝ちパターン」を見つけるための研究用ツールです。</p>
+
+  <ul>
+    <li><strong>バックテスト機能：</strong> チャートの時間足を切り替えて「実行」を押すと、「このチャートでスコア75点以上の時にエントリーしていたら、いくら儲かっていたか？」を瞬時にシミュレーションします。</li>
+    <li><strong>トレードジャーナル：</strong> エントリー時に「📝ジャーナルに記録」ボタンを押すことで、その瞬間の統計スコアをローカルに蓄積します。後から自分の必勝パターンを分析できます。</li>
+    <li><strong>Discord Webhook通知：</strong> アラート設定にWebhook URLを登録すると、指定価格に達した瞬間にスマホのDiscordへプッシュ通知が届きます。</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>📱 スマホアプリ化（PWA）について</h2>
+  <p>このダッシュボードは、スマホのネイティブアプリのようにインストールして使うことができます。</p>
+  <ul>
+    <li><strong>iPhone (Safari)：</strong> 画面下の「共有ボタン（四角から上矢印）」をタップ ＞ <strong>「ホーム画面に追加」</strong> を選択。</li>
+    <li><strong>Android (Chrome)：</strong> 画面右上の「メニューボタン（︙）」をタップ ＞ <strong>「ホーム画面に追加」</strong> を選択。</li>
+  </ul>
+  <p>ホーム画面のアイコンから起動すると、ブラウザのURLバーが消え、全画面の専用アプリとして動作します。</p>
+</div>
+
+<div class="footer">
+  ※当ツールは統計的予測を提供する補助ツールであり、将来の価格や利益を保証するものではありません。投資は自己責任で行ってください。
+</div>
+
+</body>
+</html>
