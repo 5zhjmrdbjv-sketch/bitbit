@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BTC/JPY ダッシュボード</title>
+
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ffffff">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -290,10 +291,6 @@
       <div class="safety-label" id="label-safety-target">利確目安</div>
       <div class="safety-value" id="safety-target">--</div>
     </div>
-    <div class="safety-cell" style="display:none;">
-      <div class="safety-label" id="label-safety-size">上限数量</div>
-      <div class="safety-value" id="safety-size">--</div>
-    </div>
   </div>
   
   <div class="entry-rationale" id="entry-rationale">
@@ -497,7 +494,7 @@
   </div>
 </div>
 
-<div class="footer">※ Binance API / WS より取得。投資アドバイスではありません。</div>
+<div class="footer">※ Kraken API / Binance WS より取得。投資アドバイスではありません。</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -508,7 +505,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const API_BASE = 'https://api.binance.com/api/v3';
+// REST APIのベースURLをKrakenに変更
+const API_BASE = 'https://api.kraken.com/0/public';
 
 let priceHistory = [];
 let volumeHistory = [];
@@ -524,7 +522,7 @@ let usingFallbackPrice = false;
 let usingFallbackHistory = false;
 let usingCachedPrice = false;
 let usingCachedHistory = false;
-let activePriceSource = 'Binance API';
+let activePriceSource = 'Kraken API';
 
 // WebSocket & Throttle variables
 let ws = null;
@@ -1481,23 +1479,16 @@ function renderMacdChart() {
   }
 }
 
-async function fetchWithFallback(path, retries = 2) {
+async function fetchExternalJson(url, retries = 1) {
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const res = await fetch(API_BASE + path, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+      const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (e) {
-      if (e.name === 'AbortError') {
-        if (attempt < retries) { await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); continue; }
-        throw new Error('タイムアウト');
-      }
-      if (e.message && e.message.includes('429') && attempt < retries) {
-        await new Promise(resolve => setTimeout(resolve, 700 * (attempt + 1)));
-        continue;
-      }
+      if (attempt < retries) { await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); continue; }
       throw e;
     } finally { clearTimeout(timeout); }
   }
@@ -1533,20 +1524,28 @@ async function fetchPrice() {
   if(activePriceSource === 'Binance WS') return;
 
   try {
-    const data = await fetchWithFallback('/ticker/24hr?symbol=BTCJPY');
-    if (!data || !data.lastPrice) throw new Error('no data');
+    const data = await fetchExternalJson('https://api.kraken.com/0/public/Ticker?pair=BTCJPY');
+    if (data.error && data.error.length > 0) throw new Error(data.error[0]);
+    
+    const pairKey = Object.keys(data.result)[0];
+    const ticker = data.result[pairKey];
+    
+    const currentPrice = parseFloat(ticker.c[0]);
+    const openPrice = parseFloat(ticker.o[1]);
+    const changePct = ((currentPrice - openPrice) / openPrice) * 100;
+    
     const btc = {
-      jpy: parseFloat(data.lastPrice),
-      jpy_24h_change: parseFloat(data.priceChangePercent),
-      jpy_24h_vol: parseFloat(data.quoteVolume),
-      jpy_24h_high: parseFloat(data.highPrice),
-      jpy_24h_low: parseFloat(data.lowPrice)
+      jpy: currentPrice,
+      jpy_24h_change: changePct,
+      jpy_24h_vol: parseFloat(ticker.v[1]),
+      jpy_24h_high: parseFloat(ticker.h[1]),
+      jpy_24h_low: parseFloat(ticker.l[1])
     };
-    activePriceSource = 'Binance API';
+    activePriceSource = 'Kraken API';
     writeCache(PRICE_CACHE_KEY, { btc });
     applyPriceData(btc, 'live');
   } catch (e) {
-    console.error('Binance fetchPrice error:', e);
+    console.error('Kraken fetchPrice error:', e);
     const cached = readCache(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE);
     if (cached && cached.btc) { activePriceSource = 'キャッシュ'; applyPriceData(cached.btc, 'cached'); return; }
     activePriceSource = '参考値'; applyPriceData(FALLBACK_PRICE, 'fallback');
@@ -1554,17 +1553,22 @@ async function fetchPrice() {
 }
 
 async function fetchHistory() {
-  const tfMap = { '1m': '1m', '5m': '5m', '1h': '1h', '1d': '1d' };
-  const interval = tfMap[currentTF] || '5m';
+  const tfMap = { '1m': 1, '5m': 5, '1h': 60, '1d': 1440 };
+  const interval = tfMap[currentTF] || 5;
   try {
-    const data = await fetchWithFallback(`/klines?symbol=BTCJPY&interval=${interval}&limit=100`);
-    if (!data || !data.length) throw new Error('no prices');
+    const data = await fetchExternalJson(`https://api.kraken.com/0/public/OHLC?pair=BTCJPY&interval=${interval}`);
+    if (data.error && data.error.length > 0) throw new Error(data.error[0]);
 
-    priceHistory = data.map(k => parseFloat(k[4])); 
-    volumeHistory = data.map(k => parseFloat(k[5])); 
+    const pairKey = Object.keys(data.result).find(k => k !== 'last');
+    const klines = data.result[pairKey];
 
-    const labels = data.map(k => {
-      const dt = new Date(k[0]);
+    const sampled = klines.slice(-100);
+
+    priceHistory = sampled.map(k => parseFloat(k[4])); 
+    volumeHistory = sampled.map(k => parseFloat(k[6])); 
+
+    const labels = sampled.map(k => {
+      const dt = new Date(k[0] * 1000);
       if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
       return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
     });
@@ -1621,7 +1625,6 @@ async function fetchHistory() {
   }
 }
 
-// オーダーブックの描画処理
 function updateOrderBook(bids, asks) {
   const buyEl = document.getElementById('depth-buys');
   const sellEl = document.getElementById('depth-sells');
@@ -1639,7 +1642,6 @@ function updateOrderBook(bids, asks) {
 function initWebSocket() {
   if (ws) { ws.onclose = null; ws.close(); }
   const wsBadge = document.getElementById('ws-status');
-  // TickerとDepth(オーダーブック)を同時購読
   ws = new WebSocket('wss://stream.binance.com:9443/ws/btcjpy@ticker/btcjpy@depth10@100ms');
   
   ws.onopen = () => {
@@ -1649,7 +1651,7 @@ function initWebSocket() {
   ws.onmessage = (msg) => {
     try {
       const data = JSON.parse(msg.data);
-      if (data && data.c) { // Tickerデータ
+      if (data && data.c) { 
         const price = parseFloat(data.c);
         const vol = parseFloat(data.v); 
         
@@ -1682,7 +1684,7 @@ function initWebSocket() {
             throttleTimer = null;
           }, 1000);
         }
-      } else if (data.bids) { // Depthデータ
+      } else if (data.bids) { 
         updateOrderBook(data.bids, data.asks);
       }
     } catch (e) { console.error('WS parse error', e); }
@@ -1690,7 +1692,7 @@ function initWebSocket() {
 
   ws.onclose = () => {
     if (wsBadge) wsBadge.classList.remove('ws-active');
-    activePriceSource = 'Binance API';
+    activePriceSource = 'Kraken API';
     clearTimeout(wsReconnectTimer);
     wsReconnectTimer = setTimeout(initWebSocket, 5000);
   };
