@@ -368,7 +368,7 @@
 
 <div class="card candle-card">
   <div class="card-header">
-    <span class="card-title">ローソク足 <span style="color:var(--text3);font-weight:400;">価格履歴ベース</span></span>
+    <span class="card-title">ローソク足 <span style="color:var(--text3);font-weight:400;">(Kraken OHLCベース)</span></span>
   </div>
   <div class="candle-summary">
     <div class="candle-stat">
@@ -505,11 +505,11 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// REST APIのベースURLをKrakenに変更
 const API_BASE = 'https://api.kraken.com/0/public';
 
 let priceHistory = [];
 let volumeHistory = [];
+let ohlcHistory = []; // 本物のローソク足データ用
 let currentTF = '5m';
 let currentPrice = 0;
 let alerts = JSON.parse(localStorage.getItem('btc_alerts') || '[]');
@@ -1368,21 +1368,16 @@ function renderCandlestickChart() {
   canvas.width = Math.floor(width * dpr); canvas.height = Math.floor(height * dpr);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const recent = priceHistory.slice(-96);
-  if (recent.length < 4) return;
+  if (!ohlcHistory || ohlcHistory.length < 4) return;
 
-  const labels = candleLabels.slice(-recent.length);
-  const targetCandles = width < 420 ? 16 : 24;
-  const windowSize = Math.max(3, Math.floor(recent.length / targetCandles));
-  const candles = [];
+  // 画面幅に応じて表示本数を最適化（スマホ時は潰れないように直近48本）
+  const maxCandles = width < 420 ? 48 : 96;
+  const displayCandles = ohlcHistory.slice(-maxCandles);
+  const displayLabels = candleLabels.slice(-maxCandles);
 
-  for (let i = 0; i < recent.length; i += windowSize) {
-    const slice = recent.slice(i, i + windowSize);
-    if (slice.length < 2) continue;
-    candles.push({ open: slice[0], close: slice[slice.length - 1], high: Math.max(...slice), low: Math.min(...slice), label: labels[Math.min(i + slice.length - 1, labels.length - 1)] || '' });
-  }
-
-  if (!candles.length) return;
+  const candles = displayCandles.map((c, i) => ({
+    open: c.open, close: c.close, high: c.high, low: c.low, label: displayLabels[i] || ''
+  }));
 
   const max = Math.max(...candles.map(c => c.high));
   const min = Math.min(...candles.map(c => c.low));
@@ -1392,11 +1387,13 @@ function renderCandlestickChart() {
   const topValue = max + pad;
   const bottomValue = min - pad;
   const valueRange = Math.max(1, topValue - bottomValue);
+  
   const plot = { left: 8, right: 58, top: 14, bottom: 24 };
   const plotWidth = width - plot.left - plot.right;
   const plotHeight = height - plot.top - plot.bottom;
   const stepX = plotWidth / Math.max(1, candles.length);
-  const bodyWidth = Math.max(5, Math.min(14, stepX * 0.62));
+  const bodyWidth = Math.max(3, Math.min(14, stepX * 0.65));
+  
   const dark = isDark();
   const gridColor = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
   const tickColor = dark ? '#777' : '#8b8b8b';
@@ -1411,6 +1408,7 @@ function renderCandlestickChart() {
 
   ctx.font = '10px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
   ctx.textBaseline = 'middle'; ctx.strokeStyle = gridColor; ctx.fillStyle = tickColor; ctx.lineWidth = 1;
+  
   for (let i = 0; i <= 4; i += 1) {
     const y = plot.top + (i / 4) * plotHeight;
     const value = topValue - (i / 4) * valueRange;
@@ -1426,12 +1424,13 @@ function renderCandlestickChart() {
     const isUp = c.close >= c.open;
     const color = isUp ? '#1d9e75' : '#e24b4a';
     const bodyTop = Math.min(yOpen, yClose);
-    const bodyHeight = Math.max(2, Math.abs(yClose - yOpen));
+    const bodyHeight = Math.max(1, Math.abs(yClose - yOpen));
 
-    ctx.strokeStyle = color; ctx.lineWidth = 1.4;
+    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.moveTo(centerX, yHigh); ctx.lineTo(centerX, yLow); ctx.stroke();
-    ctx.fillStyle = isUp ? 'rgba(29,158,117,0.36)' : 'rgba(226,75,74,0.36)';
-    ctx.fillRect(x, bodyTop, bodyWidth, bodyHeight); ctx.strokeRect(x, bodyTop, bodyWidth, bodyHeight);
+    ctx.fillStyle = isUp ? 'rgba(29,158,117,0.8)' : 'rgba(226,75,74,0.8)';
+    ctx.fillRect(x, bodyTop, bodyWidth, bodyHeight); 
+    ctx.strokeRect(x, bodyTop, bodyWidth, bodyHeight);
   });
 
   const currentY = yFor(current);
@@ -1446,11 +1445,16 @@ function renderCandlestickChart() {
   ctx.fillText(priceLabel, width - labelWidth / 2 - 6, Math.max(12, currentY));
 
   ctx.textAlign = 'center'; ctx.fillStyle = tickColor;
-  [0, Math.floor((candles.length - 1) / 2), candles.length - 1].forEach(index => {
-    const candle = candles[index]; if (!candle) return;
-    const x = plot.left + index * stepX + stepX / 2;
-    ctx.fillText(candle.label, x, height - 10);
-  });
+  const labelSteps = Math.floor(candles.length / 4);
+  if(labelSteps > 0) {
+    for(let i=0; i<candles.length; i+=labelSteps) {
+      if(i >= candles.length) break;
+      const x = plot.left + i * stepX + stepX / 2;
+      ctx.fillText(candles[i].label, x, height - 10);
+    }
+    const lastIdx = candles.length - 1;
+    ctx.fillText(candles[lastIdx].label, plot.left + lastIdx * stepX + stepX / 2, height - 10);
+  }
 
   const direction = last.close - last.open;
   const directionText = (direction >= 0 ? '+' : '') + fmtSmall(direction);
@@ -1566,6 +1570,9 @@ async function fetchHistory() {
 
     priceHistory = sampled.map(k => parseFloat(k[4])); 
     volumeHistory = sampled.map(k => parseFloat(k[6])); 
+    ohlcHistory = sampled.map(k => ({
+      open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4])
+    }));
 
     const labels = sampled.map(k => {
       const dt = new Date(k[0] * 1000);
@@ -1574,7 +1581,7 @@ async function fetchHistory() {
     });
     candleLabels = labels;
 
-    writeCache(HISTORY_CACHE_KEY + '_' + currentTF, { priceHistory, volumeHistory, labels });
+    writeCache(HISTORY_CACHE_KEY + '_' + currentTF, { priceHistory, volumeHistory, ohlcHistory, labels });
     renderPriceChart(labels); renderCandlestickChart(); renderMacdChart();
     usingFallbackHistory = false; usingCachedHistory = false;
     updateDataBanner(); updateIndicators(); updateSafetyPanel();
@@ -1587,9 +1594,12 @@ async function fetchHistory() {
     if (currentTF === '1d') stepMs = 86400000;
 
     if (currentPrice) {
-      const previous = Array.isArray(priceHistory) && priceHistory.length ? priceHistory.slice(-95) : buildFallbackHistory(currentPrice).slice(-95);
-      priceHistory = [...previous, currentPrice];
+      const previousPrice = Array.isArray(priceHistory) && priceHistory.length ? priceHistory.slice(-95) : buildFallbackHistory(currentPrice).slice(-95);
+      priceHistory = [...previousPrice, currentPrice];
       if (volumeHistory.length) volumeHistory = [...volumeHistory.slice(-95), volumeHistory[volumeHistory.length-1]];
+      
+      const previousOhlc = Array.isArray(ohlcHistory) && ohlcHistory.length ? ohlcHistory.slice(-95) : priceHistory.map(p => ({open: p, high: p*1.001, low: p*0.999, close: p}));
+      ohlcHistory = [...previousOhlc, {open: currentPrice, high: currentPrice, low: currentPrice, close: currentPrice}];
       
       const labels = priceHistory.map((_, i) => {
         const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * stepMs);
@@ -1606,6 +1616,7 @@ async function fetchHistory() {
     if (cached && Array.isArray(cached.priceHistory) && cached.priceHistory.length && Array.isArray(cached.labels)) {
       priceHistory = cached.priceHistory; candleLabels = cached.labels;
       if (cached.volumeHistory) volumeHistory = cached.volumeHistory;
+      if (cached.ohlcHistory) ohlcHistory = cached.ohlcHistory;
       renderPriceChart(cached.labels); renderCandlestickChart(); renderMacdChart();
       usingFallbackHistory = false; usingCachedHistory = true;
       updateDataBanner(); updateIndicators(); updateSafetyPanel();
@@ -1613,6 +1624,7 @@ async function fetchHistory() {
     }
     priceHistory = buildFallbackHistory(currentPrice || FALLBACK_PRICE.jpy);
     volumeHistory = priceHistory.map(() => 0);
+    ohlcHistory = priceHistory.map(p => ({open: p, high: p*1.001, low: p*0.999, close: p}));
     const labels = priceHistory.map((_, i) => {
       const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * stepMs);
       if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
@@ -1666,6 +1678,12 @@ function initWebSocket() {
         }
         if(volumeHistory.length > 0 && vol) {
           volumeHistory[volumeHistory.length - 1] = vol;
+        }
+        if(ohlcHistory.length > 0) {
+          let last = ohlcHistory[ohlcHistory.length - 1];
+          last.close = price;
+          if (price > last.high) last.high = price;
+          if (price < last.low) last.low = price;
         }
 
         const priceEl = document.getElementById('metric-price');
