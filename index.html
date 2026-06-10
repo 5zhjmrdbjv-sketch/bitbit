@@ -4,9 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BTC/JPY ダッシュボード</title>
+
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ffffff">
 <link rel="apple-touch-icon" href="icon-192.png">
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   .depth-container { display: flex; height: 160px; gap: 4px; padding: 10px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 12px; }
@@ -14,6 +16,7 @@
   .depth-bar { height: 12px; font-size: 8px; color: #fff; display: flex; align-items: center; padding: 0 4px; transition: width 0.3s; }
   .depth-buy { background: var(--green); align-self: flex-end; }
   .depth-sell { background: var(--red); }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --bg: #ffffff; --bg2: #f5f5f5; --bg3: #ececec;
@@ -87,6 +90,7 @@
   .alert-form select, .alert-form input[type=text], .alert-form input[type=number] { font-size: 13px; padding: 6px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; }
   .alert-form select { min-width: 130px; }
   .alert-form input[type=number] { flex: 1; min-width: 140px; }
+  .alert-form input::placeholder { color: var(--text3); }
   .webhook-field { width: 100%; margin-bottom: 12px; display: flex; }
   .webhook-field input { width: 100%; font-size: 12px; }
   .alert-list { display: flex; flex-direction: column; gap: 6px; }
@@ -356,7 +360,7 @@
 
 <div class="card candle-card">
   <div class="card-header">
-    <span class="card-title">ローソク足 <span style="color:var(--text3);font-weight:400;" id="chart-source-note">(Bybit OHLCベース)</span></span>
+    <span class="card-title">ローソク足 <span style="color:var(--text3);font-weight:400;" id="chart-source-note">(Binance OHLCベース)</span></span>
   </div>
   <div class="candle-summary">
     <div class="candle-stat">
@@ -482,7 +486,7 @@
   </div>
 </div>
 
-<div class="footer">※ Bybit API (BTCUSDT連動) / Kraken より取得。投資アドバイスではありません。</div>
+<div class="footer">※ Binance API / WS より取得。投資アドバイスではありません。</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -492,8 +496,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const BYBIT_BASE = 'https://api.bybit.com/v5/market';
-const KRAKEN_BASE = 'https://api.kraken.com/0/public';
+// 安定動作最強のBinanceに完全統合！
+const API_BASE = 'https://api.binance.com/api/v3';
 
 let priceHistory = [];
 let volumeHistory = [];
@@ -510,9 +514,9 @@ let usingFallbackPrice = false;
 let usingFallbackHistory = false;
 let usingCachedPrice = false;
 let usingCachedHistory = false;
-let activePriceSource = 'Bybit';
+let activePriceSource = 'Binance API';
 
-let currentUsdJpyRate = 150.0; // 為替レートの初期値
+let currentUsdJpyRate = 150.0;
 
 let ws = null;
 let wsReconnectTimer = null;
@@ -1059,7 +1063,7 @@ function updateSafetyPanel() {
   setTradeText('plan-target', direction === 'neutral' ? '--' : fmt(target));
   setTradeText('plan-size', direction === 'neutral' ? '--' : size.toFixed(5) + ' BTC');
 
-  const dataState = activePriceSource === 'Bybit WS' ? 'WSリアルタイム' : usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム';
+  const dataState = activePriceSource === 'Binance WS' ? 'WSリアルタイム' : usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム';
   
   setTradeText('entry-rationale-body', generateEntryRationale({
     grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25, volZScore,
@@ -1448,12 +1452,11 @@ function renderCandlestickChart() {
   const directionText = (direction >= 0 ? '+' : '') + fmtSmall(direction);
   ctx.textAlign = 'left'; ctx.fillStyle = textColor;
   ctx.fillText('O ' + fmt(last.open) + '  H ' + fmt(last.high) + '  L ' + fmt(last.low) + '  C ' + fmt(last.close) + '  ' + directionText, plot.left, 10);
-  
-  // ソース表記を動的に更新
+
   const noteEl = document.getElementById('chart-source-note');
   if (noteEl) {
     const isShortTerm = (currentTF === '1m' || currentTF === '5m');
-    noteEl.textContent = isShortTerm ? `(${activePriceSource.split(' ')[0]} BTCUSDT換算ベース)` : `(${activePriceSource.split(' ')[0]} BTCJPYベース)`;
+    noteEl.textContent = isShortTerm ? `(Binance BTCUSDT換算ベース)` : `(Binance BTCJPYベース)`;
   }
 }
 
@@ -1520,84 +1523,42 @@ function applyPriceData(btc, source = 'live') {
 }
 
 async function fetchPrice() {
-  if(activePriceSource === 'Bybit WS') return; 
+  if(activePriceSource === 'Binance WS') return;
+
   try {
-    const data = await fetchExternalJson(`${BYBIT_BASE}/tickers?category=spot&symbol=BTCJPY`);
-    if (!data || !data.result || !data.result.list || !data.result.list.length) throw new Error('no data');
-    const t = data.result.list[0];
-    const price = parseFloat(t.lastPrice);
-    const chgPct = parseFloat(t.price24hPcnt) * 100;
+    const data = await fetchExternalJson(`${API_BASE}/ticker/24hr?symbol=BTCJPY`);
+    if (!data || !data.lastPrice) throw new Error('no data');
     const btc = {
-      jpy: price,
-      jpy_24h_change: chgPct,
-      jpy_24h_vol: parseFloat(t.volume24h) * price,
-      jpy_24h_high: parseFloat(t.highPrice24h),
-      jpy_24h_low: parseFloat(t.lowPrice24h)
+      jpy: parseFloat(data.lastPrice),
+      jpy_24h_change: parseFloat(data.priceChangePercent),
+      jpy_24h_vol: parseFloat(data.quoteVolume),
+      jpy_24h_high: parseFloat(data.highPrice),
+      jpy_24h_low: parseFloat(data.lowPrice)
     };
-    activePriceSource = 'Bybit API';
+    activePriceSource = 'Binance API';
     writeCache(PRICE_CACHE_KEY, { btc });
     applyPriceData(btc, 'live');
   } catch (e) {
-    console.warn('Bybit fetchPrice error:', e);
-    try {
-      const cc = await fetchExternalJson('https://coincheck.com/api/ticker?pair=btc_jpy');
-      if (cc && cc.last) {
-        const btc = { jpy: +cc.last, jpy_24h_change: 0, jpy_24h_vol: +cc.volume * +cc.last, jpy_24h_high: +cc.high || +cc.last, jpy_24h_low: +cc.low || +cc.last };
-        activePriceSource = 'Coincheck API';
-        writeCache(PRICE_CACHE_KEY, { btc });
-        applyPriceData(btc, 'live');
-        return;
-      }
-    } catch (e2) {}
-    try {
-      const bf = await fetchExternalJson('https://api.bitflyer.com/v1/ticker?product_code=BTC_JPY');
-      if (bf && bf.ltp) {
-        const btc = { jpy: +bf.ltp, jpy_24h_change: 0, jpy_24h_vol: +(bf.volume_by_product || bf.volume || 0) * +bf.ltp, jpy_24h_high: +bf.ltp, jpy_24h_low: +bf.ltp };
-        activePriceSource = 'bitFlyer API';
-        writeCache(PRICE_CACHE_KEY, { btc });
-        applyPriceData(btc, 'live');
-        return;
-      }
-    } catch (e3) {}
-    try {
-      const kd = await fetchExternalJson('https://api.kraken.com/0/public/Ticker?pair=XBTJPY');
-      if (!kd.error || !kd.error.length) {
-        const pairKey = Object.keys(kd.result)[0];
-        const ticker = kd.result[pairKey];
-        const kPrice = parseFloat(ticker.c[0]);
-        const kOpen = parseFloat(ticker.o[1]);
-        const btc = { jpy: kPrice, jpy_24h_change: ((kPrice - kOpen) / kOpen) * 100, jpy_24h_vol: parseFloat(ticker.v[1]), jpy_24h_high: parseFloat(ticker.h[1]), jpy_24h_low: parseFloat(ticker.l[1]) };
-        activePriceSource = 'Kraken API';
-        writeCache(PRICE_CACHE_KEY, { btc });
-        applyPriceData(btc, 'live');
-        return;
-      }
-    } catch (e4) {}
+    console.error('Binance fetchPrice error:', e);
     const cached = readCache(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE);
     if (cached && cached.btc) { activePriceSource = 'キャッシュ'; applyPriceData(cached.btc, 'cached'); return; }
     activePriceSource = '参考値'; applyPriceData(FALLBACK_PRICE, 'fallback');
   }
 }
 
-let currentUsdJpyRate = 150.0;
-
 async function fetchHistory() {
-  const intervalMap = { '1m': '1', '5m': '5', '1h': '60', '1d': 'D' };
-  const interval = intervalMap[currentTF] || '5';
-  const limit = 100;
-  
+  const tfMap = { '1m': '1m', '5m': '5m', '1h': '1h', '1d': '1d' };
+  const interval = tfMap[currentTF] || '5m';
   const isShortTerm = (currentTF === '1m' || currentTF === '5m');
   const symbol = isShortTerm ? 'BTCUSDT' : 'BTCJPY';
 
   try {
-    const data = await fetchExternalJson(`${BYBIT_BASE}/kline?category=spot&symbol=${symbol}&interval=${interval}&limit=${limit}`);
-    if (!data || !data.result || !data.result.list || !data.result.list.length) throw new Error('no klines');
+    const data = await fetchExternalJson(`${API_BASE}/klines?symbol=${symbol}&interval=${interval}&limit=100`);
+    if (!data || !data.length) throw new Error('no prices');
 
-    const klines = data.result.list.slice().reverse();
-    
     let rate = 1;
     if (isShortTerm) {
-      const latestUsdtPrice = parseFloat(klines[klines.length - 1][4]);
+      const latestUsdtPrice = parseFloat(data[data.length - 1][4]);
       if (currentPrice && latestUsdtPrice) {
         rate = currentPrice / latestUsdtPrice;
         currentUsdJpyRate = rate;
@@ -1606,17 +1567,17 @@ async function fetchHistory() {
       }
     }
 
-    priceHistory = klines.map(k => parseFloat(k[4]) * rate);
-    volumeHistory = klines.map(k => parseFloat(k[5]));
-    ohlcHistory = klines.map(k => ({
-      open:  parseFloat(k[1]) * rate,
-      high:  parseFloat(k[2]) * rate,
-      low:   parseFloat(k[3]) * rate,
+    priceHistory = data.map(k => parseFloat(k[4]) * rate);
+    volumeHistory = data.map(k => parseFloat(k[5]));
+    ohlcHistory = data.map(k => ({
+      open: parseFloat(k[1]) * rate,
+      high: parseFloat(k[2]) * rate,
+      low: parseFloat(k[3]) * rate,
       close: parseFloat(k[4]) * rate
     }));
-    
-    const labels = klines.map(k => {
-      const dt = new Date(parseInt(k[0]));
+
+    const labels = data.map(k => {
+      const dt = new Date(k[0]);
       if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
       return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
     });
@@ -1627,74 +1588,21 @@ async function fetchHistory() {
     usingFallbackHistory = false; usingCachedHistory = false;
     updateDataBanner(); updateIndicators(); updateSafetyPanel();
   } catch (e) {
-    console.warn('Bybit OHLC error, trying Kraken:', e);
-    try {
-      const tfMap = { '1m': 1, '5m': 5, '1h': 60, '1d': 1440 };
-      const kInterval = tfMap[currentTF] || 5;
-      const kPair = isShortTerm ? 'XBTUSD' : 'XBTJPY';
-      
-      const kd = await fetchExternalJson(`${KRAKEN_BASE}/OHLC?pair=${kPair}&interval=${kInterval}`);
-      if (!kd.error || !kd.error.length) {
-        const pairKey = Object.keys(kd.result).find(k => k !== 'last');
-        const rawKlines = kd.result[pairKey];
-        
-        let rate = 1;
-        if (isShortTerm) {
-          const latestUsdPrice = parseFloat(rawKlines[rawKlines.length - 1][4]);
-          if (currentPrice && latestUsdPrice) {
-            rate = currentPrice / latestUsdPrice;
-            currentUsdJpyRate = rate;
-          } else {
-            rate = currentUsdJpyRate;
-          }
-        }
+    console.error('fetchHistory error:', e);
+    
+    let stepMs = 300000;
+    if (currentTF === '1m') stepMs = 60000;
+    if (currentTF === '1h') stepMs = 3600000;
+    if (currentTF === '1d') stepMs = 86400000;
 
-        const intervalSec = kInterval * 60;
-        const paddedKlines = [];
-        let prev = rawKlines[0];
-        paddedKlines.push(prev);
-        for (let i = 1; i < rawKlines.length; i++) {
-          const curr = rawKlines[i];
-          let nextTime = prev[0] + intervalSec;
-          let gapCount = 0;
-          while (nextTime < curr[0] - intervalSec / 2 && gapCount < 20) {
-            paddedKlines.push([nextTime, prev[4], prev[4], prev[4], prev[4], "0", "0", 0]);
-            nextTime += intervalSec;
-            gapCount++;
-          }
-          paddedKlines.push(curr);
-          prev = curr;
-        }
-        const sampled = paddedKlines.slice(-100);
-        priceHistory = sampled.map(k => parseFloat(k[4]) * rate);
-        volumeHistory = sampled.map(k => parseFloat(k[6]));
-        ohlcHistory = sampled.map(k => ({ 
-          open: parseFloat(k[1]) * rate, 
-          high: parseFloat(k[2]) * rate, 
-          low: parseFloat(k[3]) * rate, 
-          close: parseFloat(k[4]) * rate 
-        }));
-        const labels = sampled.map(k => {
-          const dt = new Date(k[0] * 1000);
-          if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
-          return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
-        });
-        candleLabels = labels;
-        writeCache(HISTORY_CACHE_KEY + '_' + currentTF, { priceHistory, volumeHistory, ohlcHistory, labels });
-        renderPriceChart(labels); renderCandlestickChart(); renderMacdChart();
-        usingFallbackHistory = false; usingCachedHistory = false;
-        updateDataBanner(); updateIndicators(); updateSafetyPanel();
-        return;
-      }
-    } catch (e2) { console.warn('Kraken OHLC fallback failed:', e2); }
-
-    let stepMs = { '1m': 60000, '5m': 300000, '1h': 3600000, '1d': 86400000 }[currentTF] || 300000;
     if (currentPrice) {
-      const previousPrice = Array.isArray(priceHistory) && priceHistory.length ? priceHistory.slice(-79) : buildFallbackHistory(currentPrice).slice(-79);
+      const previousPrice = Array.isArray(priceHistory) && priceHistory.length ? priceHistory.slice(-95) : buildFallbackHistory(currentPrice).slice(-95);
       priceHistory = [...previousPrice, currentPrice];
-      if (volumeHistory.length) volumeHistory = [...volumeHistory.slice(-79), volumeHistory[volumeHistory.length - 1]];
-      const previousOhlc = Array.isArray(ohlcHistory) && ohlcHistory.length ? ohlcHistory.slice(-79) : priceHistory.map(p => ({ open: p, high: p * 1.001, low: p * 0.999, close: p }));
-      ohlcHistory = [...previousOhlc, { open: currentPrice, high: currentPrice, low: currentPrice, close: currentPrice }];
+      if (volumeHistory.length) volumeHistory = [...volumeHistory.slice(-95), volumeHistory[volumeHistory.length-1]];
+      
+      const previousOhlc = Array.isArray(ohlcHistory) && ohlcHistory.length ? ohlcHistory.slice(-95) : priceHistory.map(p => ({open: p, high: p*1.001, low: p*0.999, close: p}));
+      ohlcHistory = [...previousOhlc, {open: currentPrice, high: currentPrice, low: currentPrice, close: currentPrice}];
+      
       const labels = priceHistory.map((_, i) => {
         const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * stepMs);
         if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
@@ -1707,8 +1615,8 @@ async function fetchHistory() {
       return;
     }
     const cached = readCache(HISTORY_CACHE_KEY + '_' + currentTF, HISTORY_CACHE_MAX_AGE);
-    if (cached && Array.isArray(cached.priceHistory) && cached.priceHistory.length) {
-      priceHistory = cached.priceHistory; candleLabels = cached.labels || [];
+    if (cached && Array.isArray(cached.priceHistory) && cached.priceHistory.length && Array.isArray(cached.labels)) {
+      priceHistory = cached.priceHistory; candleLabels = cached.labels;
       if (cached.volumeHistory) volumeHistory = cached.volumeHistory;
       if (cached.ohlcHistory) ohlcHistory = cached.ohlcHistory;
       renderPriceChart(cached.labels); renderCandlestickChart(); renderMacdChart();
@@ -1718,7 +1626,7 @@ async function fetchHistory() {
     }
     priceHistory = buildFallbackHistory(currentPrice || FALLBACK_PRICE.jpy);
     volumeHistory = priceHistory.map(() => 0);
-    ohlcHistory = priceHistory.map(p => ({ open: p, high: p * 1.001, low: p * 0.999, close: p }));
+    ohlcHistory = priceHistory.map(p => ({open: p, high: p*1.001, low: p*0.999, close: p}));
     const labels = priceHistory.map((_, i) => {
       const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * stepMs);
       if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
@@ -1746,68 +1654,75 @@ function updateOrderBook(bids, asks) {
 }
 
 function initWebSocket() {
-  if (ws) { ws.onclose = null; try { ws.close(); } catch(e) {} }
+  if (ws) { ws.onclose = null; ws.close(); }
   const wsBadge = document.getElementById('ws-status');
-
-  ws = new WebSocket('wss://stream.bybit.com/v5/public/spot');
-
+  // Binanceの複数ストリーム同時購読の正しいURLフォーマット
+  ws = new WebSocket('wss://stream.binance.com:9443/stream?streams=btcjpy@ticker/btcjpy@depth10@100ms');
+  
   ws.onopen = () => {
-    ws.send(JSON.stringify({ op: 'subscribe', args: ['tickers.BTCJPY', 'orderbook.50.BTCJPY'] }));
     if (wsBadge) wsBadge.classList.add('ws-active');
   };
 
   ws.onmessage = (msg) => {
     try {
-      const data = JSON.parse(msg.data);
-      if (data.topic === 'tickers.BTCJPY' && data.data) {
-        const d = data.data;
-        const price = parseFloat(d.lastPrice);
-        if (!price || isNaN(price)) return;
+      const payload = JSON.parse(msg.data);
+      const stream = payload.stream;
+      const data = payload.data;
 
-        activePriceSource = 'Bybit WS';
-        usingFallbackPrice = false; usingCachedPrice = false;
+      if (stream === 'btcjpy@ticker' && data && data.c) { 
+        const price = parseFloat(data.c);
+        const vol = parseFloat(data.v); 
+        
+        activePriceSource = 'Binance WS';
+        usingFallbackPrice = false;
+        usingCachedPrice = false;
         currentPrice = price;
         document.getElementById('price').textContent = fmt(price);
-
-        if (priceHistory.length > 0) priceHistory[priceHistory.length - 1] = price;
-        if (volumeHistory.length > 0 && d.volume24h) volumeHistory[volumeHistory.length - 1] = parseFloat(d.volume24h);
-        if (ohlcHistory.length > 0) {
-          const last = ohlcHistory[ohlcHistory.length - 1];
+        
+        if(priceHistory.length > 0) {
+          priceHistory[priceHistory.length - 1] = price;
+        }
+        if(volumeHistory.length > 0 && vol) {
+          volumeHistory[volumeHistory.length - 1] = vol;
+        }
+        if(ohlcHistory.length > 0) {
+          let last = ohlcHistory[ohlcHistory.length - 1];
           last.close = price;
           if (price > last.high) last.high = price;
           if (price < last.low) last.low = price;
         }
 
-        const priceMetric = document.querySelector('.metric:first-child');
-        if (priceMetric) {
-          priceMetric.classList.remove('flash-up', 'flash-down');
-          void priceMetric.offsetWidth;
-          priceMetric.classList.add(price >= (currentPrice || price) ? 'flash-up' : 'flash-down');
-          setTimeout(() => priceMetric && priceMetric.classList.remove('flash-up', 'flash-down'), 400);
-        }
-
+        const priceEl = document.getElementById('metric-price');
+        priceEl.classList.remove('flash-up', 'flash-down');
+        void priceEl.offsetWidth;
+        priceEl.classList.add(price >= (currentPrice || price) ? 'flash-up' : 'flash-down');
+        setTimeout(() => priceEl && priceEl.classList.remove('flash-up', 'flash-down'), 400);
+        
         checkAlerts(price);
+        
         if (!throttleTimer) {
           throttleTimer = setTimeout(() => {
-            updateSafetyPanel(); updateIndicators();
-            renderPriceChart(); renderCandlestickChart(); renderMacdChart();
+            updateSafetyPanel();
+            updateIndicators();
+            renderPriceChart();
+            renderCandlestickChart();
+            renderMacdChart();
             throttleTimer = null;
           }, 1000);
         }
-      } else if (data.topic === 'orderbook.50.BTCJPY' && data.data) {
-        const bids = data.data.b.slice(0, 10).map(x => [parseFloat(x[0]), parseFloat(x[1])]);
-        const asks = data.data.a.slice(0, 10).map(x => [parseFloat(x[0]), parseFloat(x[1])]);
-        if(bids.length > 0 || asks.length > 0) updateOrderBook(bids, asks);
+      } else if (stream === 'btcjpy@depth10@100ms' && data.bids) { 
+        updateOrderBook(data.bids, data.asks);
       }
-    } catch (e) {}
+    } catch (e) { console.error('WS parse error', e); }
   };
 
   ws.onclose = () => {
     if (wsBadge) wsBadge.classList.remove('ws-active');
-    if (activePriceSource === 'Bybit WS') activePriceSource = 'Bybit API';
+    activePriceSource = 'Binance API';
     clearTimeout(wsReconnectTimer);
-    wsReconnectTimer = setTimeout(initWebSocket, 8000);
+    wsReconnectTimer = setTimeout(initWebSocket, 5000);
   };
+  
   ws.onerror = () => { if (wsBadge) wsBadge.classList.remove('ws-active'); };
 }
 
@@ -1854,9 +1769,7 @@ async function sendDiscordWebhook(message) {
 function setTF(tf) {
   currentTF = tf;
   ['1m', '5m', '1h', '1d'].forEach(t => { document.getElementById('tf-' + t).classList.toggle('active', t === tf); });
-  priceHistory = []; ohlcHistory = []; volumeHistory = []; candleLabels = [];
-  if (priceChart) { priceChart.destroy(); priceChart = null; }
-  if (macdChart) { macdChart.destroy(); macdChart = null; }
+  priceHistory = [];
   fetchHistory();
 }
 
@@ -1918,7 +1831,6 @@ async function refreshAll() { await fetchPrice(); await fetchHistory(); }
 
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  // 60秒ごとに履歴（ローソク足）も再取得し、新しい足を追加する
   refreshTimer = setInterval(() => {
     fetchPrice();
     fetchHistory(); 
