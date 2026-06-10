@@ -86,13 +86,17 @@
   .ma-row:last-child { border-bottom: none; }
   .ma-key { color: var(--text2); }
   .ma-val { font-weight: 500; color: var(--text); }
+  
   .alert-form { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .alert-form select, .alert-form input[type=text], .alert-form input[type=number] { font-size: 13px; padding: 6px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; }
   .alert-form select { min-width: 130px; }
   .alert-form input[type=number] { flex: 1; min-width: 140px; }
   .alert-form input::placeholder { color: var(--text3); }
-  .webhook-field { width: 100%; margin-bottom: 12px; display: flex; }
-  .webhook-field input { width: 100%; font-size: 12px; }
+  
+  /* LINE入力欄用のスタイル */
+  .line-fields { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .line-fields input { width: 100%; font-size: 12px; padding: 8px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; }
+
   .alert-list { display: flex; flex-direction: column; gap: 6px; }
   .alert-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); border-radius: var(--radius); padding: 8px 12px; font-size: 13px; }
   .alert-left { display: flex; align-items: center; gap: 8px; }
@@ -110,10 +114,12 @@
   .last-updated { font-size: 11px; color: var(--text3); }
   .safety-card { border-color: var(--border2); }
   .safety-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  
   .trade-mode-panel { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg2); border-radius: var(--radius); padding: 9px 10px; margin: 0 0 12px; }
   .trade-mode-panel label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; }
   .trade-mode-panel select { font-size: 13px; padding: 6px 10px; border-radius: var(--radius); border: .5px solid var(--border2); background: var(--bg); color: var(--text); outline: none; }
   .spot-only-note { margin-top: 10px; background: var(--red-bg); color: var(--red); border-radius: var(--radius); padding: 9px 10px; font-size: 12px; line-height: 1.55; display: none; }
+
   .risk-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
   .risk-field { display: grid; gap: 5px; }
   .risk-field label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -139,6 +145,7 @@
   .trade-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
   .trade-value { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .risk-note { margin-top: 10px; color: var(--text3); font-size: 11px; line-height: 1.5; }
+  
   .summary-panel { display: grid; gap: 10px; font-size: 13px; line-height: 1.55; color: var(--text); }
   .summary-verdict { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 0.5px solid var(--border); }
   .summary-verdict span, .summary-detail span { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -154,14 +161,17 @@
   .summary-detail strong { font-size: 13px; color: var(--text); font-weight: 600; }
   .summary-flags { display: flex; flex-wrap: wrap; gap: 6px; }
   .summary-flags span { font-size: 11px; color: var(--text2); background: var(--bg2); border-radius: 99px; padding: 3px 8px; }
+  
   .candle-card { padding-bottom: 12px; }
   .candle-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: -2px 0 10px; }
   .candle-stat { min-width: 88px; flex: 1; background: var(--bg2); border-radius: var(--radius); padding: 8px 10px; }
   .candle-stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
   .candle-stat-value { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .candle-canvas-wrap { position: relative; height: 230px; border-radius: var(--radius); overflow: hidden; background: linear-gradient(180deg, var(--bg2), var(--bg)); border: 0.5px solid var(--border); }
+  
   .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); cursor: pointer; user-select: none; }
   .checkbox-label input { width: 14px; height: 14px; accent-color: var(--blue); cursor: pointer; }
+
   .journal-item { background: var(--bg2); border-radius: var(--radius); padding: 10px; font-size: 12px; margin-bottom: 6px; border-left: 4px solid var(--border2); }
   .journal-item.long { border-left-color: var(--green); }
   .journal-item.short { border-left-color: var(--red); }
@@ -462,10 +472,13 @@
 </div>
 
 <div class="card">
-  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">価格アラート & Discord通知</span></div>
-  <div class="webhook-field">
-    <input type="text" id="webhook-url" placeholder="Discord Webhook URL (任意: 設定でスマホ通知ON)" onchange="saveWebhook()" />
+  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">🔔 価格アラート & LINE通知設定</span></div>
+  <div class="line-fields">
+    <input type="text" id="line-token" placeholder="LINE Channel Access Token (とても長い文字列)" onchange="saveLineSettings()" />
+    <input type="text" id="line-userid" placeholder="LINE User ID (Uから始まる文字列)" onchange="saveLineSettings()" />
   </div>
+  <div class="risk-note" style="margin-top: 0; margin-bottom: 12px;">※入力すると指定価格到達時にLINEへ自動でメッセージが届きます。</div>
+  
   <div class="alert-form">
     <select id="alert-dir">
       <option value="above">↑ 上回ったら</option>
@@ -496,7 +509,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// 安定動作最強のBinanceに完全統合！
 const API_BASE = 'https://api.binance.com/api/v3';
 
 let priceHistory = [];
@@ -527,9 +539,10 @@ let latestStats = {};
 const PRICE_CACHE_KEY = 'btc_price_cache_v2';
 const HISTORY_CACHE_KEY = 'btc_history_cache_v2';
 const TRADE_MODE_KEY = 'btc_trade_mode_v1';
-const WEBHOOK_KEY = 'btc_webhook_url';
 const RR_TOGGLE_KEY = 'btc_show_rr_lines';
 const PRED_TOGGLE_KEY = 'btc_show_pred_band';
+const LINE_TOKEN_KEY = 'btc_line_token';
+const LINE_USERID_KEY = 'btc_line_userid';
 const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
 const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 
@@ -583,9 +596,10 @@ function loadRiskSettings() {
     const saved = JSON.parse(localStorage.getItem('btc_risk_settings') || '{}');
     if (saved.balance) document.getElementById('account-balance').value = saved.balance;
     if (saved.riskPct) document.getElementById('risk-percent').value = saved.riskPct;
-    document.getElementById('webhook-url').value = localStorage.getItem(WEBHOOK_KEY) || '';
     document.getElementById('toggle-rr-lines').checked = (localStorage.getItem(RR_TOGGLE_KEY) === 'true');
     document.getElementById('toggle-pred-band').checked = (localStorage.getItem(PRED_TOGGLE_KEY) === 'true');
+    document.getElementById('line-token').value = localStorage.getItem(LINE_TOKEN_KEY) || '';
+    document.getElementById('line-userid').value = localStorage.getItem(LINE_USERID_KEY) || '';
   } catch (e) {}
 }
 
@@ -597,7 +611,11 @@ function saveRiskSettings() {
   } catch (e) {}
 }
 
-function saveWebhook() { localStorage.setItem(WEBHOOK_KEY, document.getElementById('webhook-url').value); }
+function saveLineSettings() {
+  localStorage.setItem(LINE_TOKEN_KEY, document.getElementById('line-token').value);
+  localStorage.setItem(LINE_USERID_KEY, document.getElementById('line-userid').value);
+}
+
 function saveRRToggle() { localStorage.setItem(RR_TOGGLE_KEY, document.getElementById('toggle-rr-lines').checked); }
 function savePredToggle() { localStorage.setItem(PRED_TOGGLE_KEY, document.getElementById('toggle-pred-band').checked); }
 
@@ -1481,12 +1499,15 @@ function renderMacdChart() {
   }
 }
 
+// ⚠️ CORS回避用のプロキシ経由fetch関数
 async function fetchExternalJson(url, retries = 1) {
+  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+  
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+      const res = await fetch(proxyUrl, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (e) {
@@ -1656,7 +1677,6 @@ function updateOrderBook(bids, asks) {
 function initWebSocket() {
   if (ws) { ws.onclose = null; ws.close(); }
   const wsBadge = document.getElementById('ws-status');
-  // Binanceの複数ストリーム同時購読の正しいURLフォーマット
   ws = new WebSocket('wss://stream.binance.com:9443/stream?streams=btcjpy@ticker/btcjpy@depth10@100ms');
   
   ws.onopen = () => {
@@ -1697,7 +1717,7 @@ function initWebSocket() {
         void priceEl.offsetWidth;
         priceEl.classList.add(price >= (currentPrice || price) ? 'flash-up' : 'flash-down');
         setTimeout(() => priceEl && priceEl.classList.remove('flash-up', 'flash-down'), 400);
-        
+
         checkAlerts(price);
         
         if (!throttleTimer) {
@@ -1755,15 +1775,28 @@ function renderJournal() {
   `).join('');
 }
 
-async function sendDiscordWebhook(message) {
-  const url = document.getElementById('webhook-url').value;
-  if (!url) return;
+// ⚠️ LINE Messaging API経由でプッシュ通知を送る処理
+async function sendLineWebhook(message) {
+  const token = document.getElementById('line-token').value;
+  const userId = document.getElementById('line-userid').value;
+  if (!token || !userId) return;
+
+  const url = 'https://api.line.me/v2/bot/message/push';
+  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+
   try {
-    await fetch(url, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: "BTC/JPY アラート", content: message })
+    await fetch(proxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        to: userId,
+        messages: [{ type: 'text', text: message }]
+      })
     });
-  } catch (e) { console.error('Discord Webhook Error', e); }
+  } catch (e) { console.error('LINE Webhook Error', e); }
 }
 
 function setTF(tf) {
@@ -1808,12 +1841,12 @@ function checkAlerts(price) {
     if (a.dir === 'above' && price >= a.price) {
       a.triggered = true; triggered = true;
       const msg = `🔔 BTC/JPY アラート: ${fmt(a.price)} を上回りました！(現在価格: ${fmt(price)})`;
-      showToast(msg); sendDiscordWebhook(msg); logCurrentTrade(`アラート (${a.dir})`);
+      showToast(msg); sendLineWebhook(msg); logCurrentTrade(`アラート (${a.dir})`);
     }
     if (a.dir === 'below' && price <= a.price) {
       a.triggered = true; triggered = true;
       const msg = `🔔 BTC/JPY アラート: ${fmt(a.price)} を下回りました！(現在価格: ${fmt(price)})`;
-      showToast(msg); sendDiscordWebhook(msg); logCurrentTrade(`アラート (${a.dir})`);
+      showToast(msg); sendLineWebhook(msg); logCurrentTrade(`アラート (${a.dir})`);
     }
   });
   if (triggered) { saveAlerts(); renderAlerts(); }
