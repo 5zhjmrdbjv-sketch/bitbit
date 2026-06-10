@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BTC/JPY ダッシュボード</title>
+
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ffffff">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -12,19 +13,39 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #ffffff; --bg2: #f5f5f5; --bg3: #ececec;
-    --text: #111111; --text2: #555555; --text3: #999999;
-    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
-    --green: #1d9e75; --red: #e24b4a; --blue: #378add; --yellow: #d6a800;
-    --yellow-bg: #fff6cc; --green-bg: #eaf3de; --red-bg: #fcebeb; --blue-bg: #e6f1fb;
-    --radius: 8px; --radius-lg: 12px;
+    --bg: #ffffff;
+    --bg2: #f5f5f5;
+    --bg3: #ececec;
+    --text: #111111;
+    --text2: #555555;
+    --text3: #999999;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --green: #1d9e75;
+    --red: #e24b4a;
+    --blue: #378add;
+    --yellow: #d6a800;
+    --yellow-bg: #fff6cc;
+    --green-bg: #eaf3de;
+    --red-bg: #fcebeb;
+    --blue-bg: #e6f1fb;
+    --radius: 8px;
+    --radius-lg: 12px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1a1a1a; --bg2: #242424; --bg3: #2e2e2e;
-      --text: #f0f0f0; --text2: #aaaaaa; --text3: #666666;
-      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
-      --green-bg: #0a2e1e; --red-bg: #2e0a0a; --blue-bg: #0a1e2e; --yellow-bg: #3a3008;
+      --bg: #1a1a1a;
+      --bg2: #242424;
+      --bg3: #2e2e2e;
+      --text: #f0f0f0;
+      --text2: #aaaaaa;
+      --text3: #666666;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+      --green-bg: #0a2e1e;
+      --red-bg: #2e0a0a;
+      --blue-bg: #0a1e2e;
+      --yellow-bg: #3a3008;
     }
   }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); padding: 16px; max-width: 780px; margin: 0 auto; }
@@ -79,41 +100,116 @@
   .ma-row:last-child { border-bottom: none; }
   .ma-key { color: var(--text2); }
   .ma-val { font-weight: 500; color: var(--text); }
+  
   .alert-form { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .alert-form select, .alert-form input[type=text], .alert-form input[type=number] { font-size: 13px; padding: 6px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; }
   .alert-form select { min-width: 130px; }
   .alert-form input[type=number] { flex: 1; min-width: 140px; }
+  .alert-form input::placeholder { color: var(--text3); }
   .webhook-field { width: 100%; margin-bottom: 12px; display: flex; }
   .webhook-field input { width: 100%; font-size: 12px; }
+
   .alert-list { display: flex; flex-direction: column; gap: 6px; }
   .alert-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); border-radius: var(--radius); padding: 8px 12px; font-size: 13px; }
   .alert-left { display: flex; align-items: center; gap: 8px; }
   .alert-dir { font-size: 11px; padding: 2px 7px; border-radius: 4px; }
   .alert-dir.above { background: var(--green-bg); color: var(--green); }
   .alert-dir.below { background: var(--red-bg); color: var(--red); }
+  .alert-triggered { opacity: 0.5; }
   .alert-del { background: transparent; border: none; cursor: pointer; color: var(--text3); font-size: 18px; line-height: 1; padding: 0 2px; }
+  .alert-del:hover { color: var(--red); }
   .empty-hint { font-size: 13px; color: var(--text3); text-align: center; padding: 10px; }
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); border-radius: var(--radius); padding: 10px 20px; font-size: 13px; font-weight: 500; display: none; z-index: 9999; white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
   .footer { font-size: 11px; color: var(--text3); text-align: center; padding: 8px 0 4px; }
   .error-banner { background: var(--red-bg); color: var(--red); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; margin-bottom: 12px; display: none; }
   .error-banner.fallback { background: var(--blue-bg); color: var(--blue); }
+  .last-updated { font-size: 11px; color: var(--text3); }
+  .safety-card { border-color: var(--border2); }
+  .safety-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  
+  .trade-mode-panel { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg2); border-radius: var(--radius); padding: 9px 10px; margin: 0 0 12px; }
+  .trade-mode-panel label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; }
+  .trade-mode-panel select { font-size: 13px; padding: 6px 10px; border-radius: var(--radius); border: .5px solid var(--border2); background: var(--bg); color: var(--text); outline: none; }
+  .spot-only-note { margin-top: 10px; background: var(--red-bg); color: var(--red); border-radius: var(--radius); padding: 9px 10px; font-size: 12px; line-height: 1.55; display: none; }
+
+  .risk-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .risk-field { display: grid; gap: 5px; }
+  .risk-field label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; }
+  .risk-field input { width: 100%; font-size: 13px; padding: 8px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; }
   .safety-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .safety-cell { background: var(--bg2); border-radius: var(--radius); padding: 9px 10px; min-width: 0; }
-  .safety-label { font-size: 10px; color: var(--text3); text-transform: uppercase; margin-bottom: 4px; }
-  .safety-value { font-size: 13px; font-weight: 600; color: var(--text); }
+  .safety-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+  .safety-value { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .safety-reasons { display: grid; gap: 6px; margin-top: 10px; }
+  .safety-reason { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text2); border-top: 0.5px solid var(--border); padding-top: 7px; }
+  .safety-reason strong { color: var(--text); font-weight: 600; }
+  .entry-rationale { margin-top: 10px; background: var(--bg2); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; line-height: 1.6; color: var(--text); }
+  .entry-rationale-title { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+  .entry-rationale-body { color: var(--text); }
+  .score-breakdown { display: grid; gap: 6px; margin-top: 10px; }
   .score-row { display: grid; grid-template-columns: 88px 1fr 58px; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); border-top: 0.5px solid var(--border); padding-top: 7px; }
+  .score-row strong { color: var(--text); font-weight: 600; }
   .score-bar { height: 6px; border-radius: 99px; background: var(--bg3); overflow: hidden; }
   .score-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
   .score-points { text-align: right; font-variant-numeric: tabular-nums; }
-  .candle-canvas-wrap { position: relative; height: 230px; border-radius: var(--radius); overflow: hidden; background: linear-gradient(180deg, var(--bg2), var(--bg)); border: 0.5px solid var(--border); }
-  .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); cursor: pointer; user-select: none; }
+  .trade-plan { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .trade-cell { background: var(--bg2); border-radius: var(--radius); padding: 9px 10px; min-width: 0; }
+  .trade-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+  .trade-value { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .risk-note { margin-top: 10px; color: var(--text3); font-size: 11px; line-height: 1.5; }
   
-  /* Journal specific styles */
+  .summary-panel { display: grid; gap: 10px; font-size: 13px; line-height: 1.55; color: var(--text); }
+  .summary-verdict { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 0.5px solid var(--border); }
+  .summary-verdict span, .summary-detail span { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .summary-verdict strong { font-size: 18px; color: var(--text); }
+  .summary-buy .summary-verdict strong { color: var(--green); }
+  .summary-sell .summary-verdict strong, .summary-risk .summary-verdict strong { color: var(--red); }
+  .summary-copy { color: var(--text); }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .summary-item { background: var(--bg2); border-radius: var(--radius); padding: 8px 10px; min-width: 0; }
+  .summary-item span { display: block; color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+  .summary-item strong { display: block; color: var(--text); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .summary-detail { display: grid; gap: 4px; background: var(--bg2); border-radius: var(--radius); padding: 9px 10px; }
+  .summary-detail strong { font-size: 13px; color: var(--text); font-weight: 600; }
+  .summary-flags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .summary-flags span { font-size: 11px; color: var(--text2); background: var(--bg2); border-radius: 99px; padding: 3px 8px; }
+  
+  .candle-card { padding-bottom: 12px; }
+  .candle-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: -2px 0 10px; }
+  .candle-stat { min-width: 88px; flex: 1; background: var(--bg2); border-radius: var(--radius); padding: 8px 10px; }
+  .candle-stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+  .candle-stat-value { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .candle-canvas-wrap { position: relative; height: 230px; border-radius: var(--radius); overflow: hidden; background: linear-gradient(180deg, var(--bg2), var(--bg)); border: 0.5px solid var(--border); }
+  
+  /* チェックボックス（トグル）のスタイル */
+  .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); cursor: pointer; user-select: none; }
+  .checkbox-label input { width: 14px; height: 14px; accent-color: var(--blue); cursor: pointer; }
+
+  /* ジャーナルのスタイル */
   .journal-item { background: var(--bg2); border-radius: var(--radius); padding: 10px; font-size: 12px; margin-bottom: 6px; border-left: 4px solid var(--border2); }
   .journal-item.long { border-left-color: var(--green); }
   .journal-item.short { border-left-color: var(--red); }
+  .journal-item.neutral { border-left-color: var(--border2); }
   .journal-top { display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--text3); font-size: 10px; }
   .journal-data { display: flex; gap: 12px; flex-wrap: wrap; color: var(--text); font-weight: 500; }
+
+  @media (max-width: 560px) {
+    body { padding: 12px; }
+    .header { align-items: flex-start; gap: 12px; flex-direction: column; }
+    .header-right { width: 100%; justify-content: space-between; }
+    .card-header { align-items: flex-start; gap: 10px; flex-direction: column; }
+    .tf-btns { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); }
+    .tf-btn { width: 100%; min-height: 32px; }
+    .risk-controls { grid-template-columns: 1fr; }
+    .safety-grid { grid-template-columns: repeat(2, 1fr); }
+    .summary-grid { grid-template-columns: 1fr; }
+    .trade-plan { grid-template-columns: repeat(2, 1fr); }
+    .score-row { grid-template-columns: 72px 1fr 52px; }
+    .alert-form { display: grid; grid-template-columns: 1fr; }
+    .alert-form select, .alert-form input[type=number], .alert-form button { width: 100%; }
+    .candle-canvas-wrap { height: 220px; }
+  }
+  canvas { width: 100%; height: 100%; display: block; }
 </style>
 </head>
 <body>
@@ -121,88 +217,279 @@
 <div class="header">
   <div class="header-left">
     <div class="btc-badge">₿</div>
-    <div><div class="ticker">BTC / JPY</div><div class="subtitle">リアルタイムダッシュボード</div></div>
+    <div>
+      <div class="ticker">BTC / JPY</div>
+      <div class="subtitle">リアルタイムダッシュボード</div>
+    </div>
   </div>
   <div class="header-right">
     <span class="last-updated" id="last-updated">--</span>
-    <div class="live-badge" id="ws-status"><div class="live-dot"></div>WS</div>
+    <div class="live-badge" id="ws-status"><div class="live-dot"></div>WS接続中</div>
     <button class="btn" onclick="refreshAll()">↻ 更新</button>
   </div>
 </div>
 
-<div class="error-banner" id="error-banner">⚠️ データ取得に失敗しました。</div>
+<div class="error-banner" id="error-banner">
+  ⚠️ データ取得に失敗しました。インターネット接続を確認して「更新」を押してください。
+</div>
 
 <div class="metrics">
-  <div class="metric" id="metric-price"><div class="metric-label">現在価格</div><div class="metric-value" id="price">--</div><div class="metric-sub" id="change">--</div></div>
-  <div class="metric"><div class="metric-label">24h 最高値</div><div class="metric-value" id="high">--</div></div>
-  <div class="metric"><div class="metric-label">24h 最安値</div><div class="metric-value" id="low">--</div></div>
-  <div class="metric"><div class="metric-label">出来高 (BTC)</div><div class="metric-value" id="volume">--</div></div>
+  <div class="metric" id="metric-price">
+    <div class="metric-label">現在価格</div>
+    <div class="metric-value" id="price">--</div>
+    <div class="metric-sub" id="change">--</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">24h 最高値</div>
+    <div class="metric-value" id="high">--</div>
+    <div class="metric-sub" style="color:var(--text3)">直近24時間</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">24h 最安値</div>
+    <div class="metric-value" id="low">--</div>
+    <div class="metric-sub" style="color:var(--text3)">直近24時間</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">出来高 (BTC)</div>
+    <div class="metric-value" id="volume">--</div>
+    <div class="metric-sub" style="color:var(--text3)">24時間</div>
+  </div>
 </div>
 
 <div class="card safety-card">
-  <div class="card-header" style="margin-bottom: 8px;">
+  <div class="safety-top">
     <span class="card-title">トレード安全チェック</span>
     <span class="signal signal-neutral" id="safety-status">判定中...</span>
   </div>
   
-  <div class="safety-grid" style="margin-bottom: 12px;">
-    <div class="safety-cell"><div class="safety-label">安全度</div><div class="safety-value" id="safety-score">--</div></div>
-    <div class="safety-cell"><div class="safety-label">方向</div><div class="safety-value" id="safety-direction">--</div></div>
-    <div class="safety-cell"><div class="safety-label">エントリー</div><div class="safety-value" id="safety-entry">--</div></div>
-    <div class="safety-cell"><div class="safety-label">損切り幅</div><div class="safety-value" id="safety-stop-gap">--</div></div>
-    <div class="safety-cell"><div class="safety-label">損切り目安</div><div class="safety-value" id="safety-stop">--</div></div>
-    <div class="safety-cell"><div class="safety-label">利確目安</div><div class="safety-value" id="safety-target">--</div></div>
+  <div class="trade-mode-panel">
+    <label for="trade-mode-select">取引モード</label>
+    <select id="trade-mode-select" onchange="saveTradeMode(); updateSafetyPanel();">
+      <option value="spot">現物ロングのみ</option>
+      <option value="both">ロング/ショート両対応</option>
+    </select>
   </div>
 
-  <div id="score-breakdown" style="margin-bottom: 12px;"></div>
+  <div class="risk-controls">
+    <div class="risk-field">
+      <label for="account-balance">想定資金 (JPY)</label>
+      <input type="number" id="account-balance" value="1000000" min="0" step="10000" onchange="saveRiskSettings(); updateSafetyPanel();" />
+    </div>
+    <div class="risk-field">
+      <label for="risk-percent">1回の許容損失 (%)</label>
+      <input type="number" id="risk-percent" value="1" min="0.1" max="5" step="0.1" onchange="saveRiskSettings(); updateSafetyPanel();" />
+    </div>
+  </div>
   
-  <button class="btn" onclick="logCurrentTrade('手動記録')" style="width: 100%; background: var(--bg2);">📝 現在の指標とスコアをジャーナルに記録</button>
+  <div class="safety-grid">
+    <div class="safety-cell">
+      <div class="safety-label" id="label-safety-score">安全度</div>
+      <div class="safety-value" id="safety-score">--</div>
+    </div>
+    <div class="safety-cell">
+      <div class="safety-label" id="label-safety-direction">方向</div>
+      <div class="safety-value" id="safety-direction">--</div>
+    </div>
+    <div class="safety-cell">
+      <div class="safety-label" id="label-safety-entry">エントリー</div>
+      <div class="safety-value" id="safety-entry">--</div>
+    </div>
+    <div class="safety-cell">
+      <div class="safety-label" id="label-safety-stop-gap">損切り幅</div>
+      <div class="safety-value" id="safety-stop-gap">--</div>
+    </div>
+    <div class="safety-cell">
+      <div class="safety-label" id="label-safety-stop">損切り目安</div>
+      <div class="safety-value" id="safety-stop">--</div>
+    </div>
+    <div class="safety-cell">
+      <div class="safety-label" id="label-safety-target">利確目安</div>
+      <div class="safety-value" id="safety-target">--</div>
+    </div>
+    <div class="safety-cell" style="display:none;">
+      <div class="safety-label" id="label-safety-size">上限数量</div>
+      <div class="safety-value" id="safety-size">--</div>
+    </div>
+  </div>
+  
+  <div class="entry-rationale" id="entry-rationale">
+    <div class="entry-rationale-title">エントリー根拠</div>
+    <div class="entry-rationale-body" id="entry-rationale-body">分析中...</div>
+  </div>
+  
+  <div id="spot-only-note" class="spot-only-note"></div>
+
+  <div class="trade-plan" id="trade-plan">
+    <div class="trade-cell"><div class="trade-label" id="label-plan-entry">エントリー</div><div class="trade-value" id="plan-entry">--</div></div>
+    <div class="trade-cell"><div class="trade-label" id="label-plan-stop">損切り</div><div class="trade-value" id="plan-stop">--</div></div>
+    <div class="trade-cell"><div class="trade-label" id="label-plan-target">利確</div><div class="trade-value" id="plan-target">--</div></div>
+    <div class="trade-cell"><div class="trade-label" id="label-plan-size">推奨数量</div><div class="trade-value" id="plan-size">--</div></div>
+  </div>
+  
+  <div class="score-breakdown" id="score-breakdown">
+    <div class="score-row"><strong>内訳</strong><div class="score-bar"><div class="score-bar-fill" style="width:0;background:var(--blue);"></div></div><span class="score-points">計算中</span></div>
+  </div>
+  
+  <div class="safety-reasons" id="safety-reasons">
+    <div class="safety-reason"><span>データ</span><strong>計算中...</strong></div>
+  </div>
+  <div class="risk-note">確実性ではなく、損失上限と見送り条件を先に決めるための補助表示です。点数と根拠文は補助指標で、投資判断を保証するものではありません。</div>
+
+  <button class="btn" onclick="logCurrentTrade('手動記録')" style="width: 100%; margin-top: 12px; background: var(--bg2); padding: 8px;">📝 現在の指標とスコアをジャーナルに記録</button>
 </div>
 
 <div class="card">
   <div class="card-header">
-    <span class="card-title">価格チャート <label class="checkbox-label"><input type="checkbox" id="toggle-rr-lines" onchange="saveRRToggle(); renderPriceChart();"> RRライン</label></span>
+    <span class="card-title">
+      価格チャート (JPY)
+      <label class="checkbox-label" style="margin-left: 10px;">
+        <input type="checkbox" id="toggle-rr-lines" onchange="saveRRToggle(); renderPriceChart();"> RRライン表示
+      </label>
+    </span>
     <div class="tf-btns">
+      <button class="tf-btn" onclick="setTF('1m')" id="tf-1m">1分</button>
       <button class="tf-btn active" onclick="setTF('5m')" id="tf-5m">5分</button>
       <button class="tf-btn" onclick="setTF('1h')" id="tf-1h">1時間</button>
       <button class="tf-btn" onclick="setTF('1d')" id="tf-1d">日足</button>
     </div>
   </div>
-  <div style="position:relative;height:200px;"><canvas id="priceChart"></canvas></div>
+  <div style="position:relative;height:200px;">
+    <canvas id="priceChart" role="img" aria-label="BTC/JPY価格チャート"></canvas>
+  </div>
+</div>
+
+<div class="card candle-card">
+  <div class="card-header">
+    <span class="card-title">ローソク足 <span style="color:var(--text3);font-weight:400;">価格履歴ベース</span></span>
+  </div>
+  <div class="candle-summary">
+    <div class="candle-stat">
+      <div class="candle-stat-label">直近終値</div>
+      <div class="candle-stat-value" id="candle-close">--</div>
+    </div>
+    <div class="candle-stat">
+      <div class="candle-stat-label">高値</div>
+      <div class="candle-stat-value" id="candle-high">--</div>
+    </div>
+    <div class="candle-stat">
+      <div class="candle-stat-label">安値</div>
+      <div class="candle-stat-value" id="candle-low">--</div>
+    </div>
+    <div class="candle-stat">
+      <div class="candle-stat-label">値幅</div>
+      <div class="candle-stat-value" id="candle-range">--</div>
+    </div>
+  </div>
+  <div class="candle-canvas-wrap">
+    <canvas id="candlestickChart" role="img" aria-label="BTC/JPYローソク足"></canvas>
+  </div>
 </div>
 
 <div class="indicators">
   <div class="card" style="margin-bottom:0;">
-    <div class="ind-label">RSI (14)</div><div class="ind-value" id="rsi-val">--</div>
+    <div class="ind-label">RSI (14)</div>
+    <div class="ind-value" id="rsi-val">--</div>
     <div class="rsi-bar"><div class="rsi-fill" id="rsi-fill" style="width:50%;background:var(--blue);"></div></div>
+    <div class="rsi-labels"><span>売られ過ぎ 30</span><span>買われ過ぎ 70</span></div>
+    <span class="signal signal-neutral" id="rsi-signal">計算中...</span>
   </div>
   <div class="card" style="margin-bottom:0;">
-    <div class="ind-label">統計分析 (Zスコア)</div>
+    <div class="ind-label">MACD (12/26)</div>
+    <div class="ind-value" id="macd-val">--</div>
+    <div style="position:relative;height:56px;margin-top:4px;">
+      <canvas id="macdChart" role="img" aria-label="MACDヒストグラム"></canvas>
+    </div>
+    <span class="signal signal-neutral" id="macd-signal">計算中...</span>
+  </div>
+  <div class="card" style="margin-bottom:0;">
+    <div class="ind-label">ボリンジャーバンド (20)</div>
+    <div style="margin-top:4px;">
+      <div class="ma-row"><span class="ma-key">上限 (+2σ)</span><span class="ma-val" id="bb-upper">--</span></div>
+      <div class="ma-row"><span class="ma-key">中央 (20MA)</span><span class="ma-val" id="bb-mid">--</span></div>
+      <div class="ma-row"><span class="ma-key">下限 (−2σ)</span><span class="ma-val" id="bb-lower">--</span></div>
+    </div>
+    <span class="signal signal-neutral" id="bb-signal">計算中...</span>
+  </div>
+  <div class="card" style="margin-bottom:0;">
+    <div class="ind-label">統計・ボラティリティ</div>
     <div style="margin-top:4px;">
       <div class="ma-row"><span class="ma-key">Zスコア (20)</span><span class="ma-val" id="z-score-val">--</span></div>
+      <div class="ma-row"><span class="ma-key">ATR (14)</span><span class="ma-val" id="atr-val">--</span></div>
       <div class="ma-row"><span class="ma-key">変動率 (14)</span><span class="ma-val" id="vol-val">--</span></div>
-      <div class="ma-row"><span class="ma-key">ボリンジャー幅</span><span class="ma-val" id="bb-width">--</span></div>
     </div>
+    <span class="signal signal-neutral" id="trend-signal">計算中...</span>
+  </div>
+  <div class="card" style="margin-bottom:0;">
+    <div class="ind-label">移動平均線</div>
+    <div style="margin-top:4px;">
+      <div class="ma-row"><span class="ma-key">MA 5</span><span class="ma-val" id="ma5">--</span></div>
+      <div class="ma-row"><span class="ma-key">MA 25</span><span class="ma-val" id="ma25">--</span></div>
+      <div class="ma-row"><span class="ma-key">MA 75</span><span class="ma-val" id="ma75">--</span></div>
+    </div>
+    <span class="signal signal-neutral" id="ma-signal">計算中...</span>
+  </div>
+  <div class="card" style="margin-bottom:0;">
+    <div class="ind-label">追加分析</div>
+    <div style="margin-top:4px;">
+      <div class="ma-row"><span class="ma-key">MACD強度</span><span class="ma-val" id="macd-strength">--</span></div>
+      <div class="ma-row"><span class="ma-key">RSI乖離</span><span class="ma-val" id="rsi-div">--</span></div>
+      <div class="ma-row"><span class="ma-key">BB乖離率</span><span class="ma-val" id="bb-dev">--</span></div>
+    </div>
+    <span class="signal signal-neutral" id="advanced-signal">計算中...</span>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-header"><span class="card-title">🔔 アラート & Discord通知</span></div>
-  <div class="webhook-field"><input type="text" id="webhook-url" placeholder="Discord Webhook URL" onchange="saveWebhook()" /></div>
+  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">📈 出来高分析</span></div>
+  <div style="margin-top:4px;">
+    <div class="ma-row"><span class="ma-key">出来高変化</span><span class="ma-val" id="volume-change">--</span></div>
+    <div class="ma-row"><span class="ma-key">出来高強度</span><span class="ma-val" id="volume-strength">--</span></div>
+    <div class="ma-row"><span class="ma-key">価格/出来高相関</span><span class="ma-val" id="volume-trend">--</span></div>
+  </div>
+  <span class="signal signal-neutral" id="volume-signal">計算中...</span>
+</div>
+
+<div class="card">
+  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">🧭 サポート / レジスタンス</span></div>
+  <div style="margin-top:4px;">
+    <div class="ma-row"><span class="ma-key">サポート</span><span class="ma-val" id="support-level">--</span></div>
+    <div class="ma-row"><span class="ma-key">レジスタンス</span><span class="ma-val" id="resistance-level">--</span></div>
+    <div class="ma-row"><span class="ma-key">乖離率</span><span class="ma-val" id="support-gap">--</span></div>
+  </div>
+  <span class="signal signal-neutral" id="support-signal">計算中...</span>
+</div>
+
+<div class="card">
+  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">総括コメント</span></div>
+  <div id="summary-comment" class="summary-panel">分析中...</div>
+</div>
+
+<div class="card">
+  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">価格アラート & Discord通知</span></div>
+  <div class="webhook-field">
+    <input type="text" id="webhook-url" placeholder="Discord Webhook URL (任意: 設定でスマホ通知ON)" onchange="saveWebhook()" />
+  </div>
   <div class="alert-form">
-    <select id="alert-dir"><option value="above">↑ 上回ったら</option><option value="below">↓ 下回ったら</option></select>
-    <input type="number" id="alert-price" placeholder="価格" />
-    <button class="btn" onclick="addAlert()">＋ 追加</button>
+    <select id="alert-dir">
+      <option value="above">↑ 上回ったら</option>
+      <option value="below">↓ 下回ったら</option>
+    </select>
+    <input type="number" id="alert-price" placeholder="価格 (例: 15000000)" step="10000" min="0" />
+    <button class="btn" onclick="addAlert()" style="white-space:nowrap;">＋ 追加</button>
   </div>
-  <div class="alert-list" id="alert-list"><div class="empty-hint">未設定</div></div>
+  <div class="alert-list" id="alert-list">
+    <div class="empty-hint">アラートはまだ設定されていません</div>
+  </div>
 </div>
 
 <div class="card">
-  <div class="card-header"><span class="card-title">📝 トレードジャーナル</span></div>
-  <div class="alert-list" id="journal-list"><div class="empty-hint">記録がありません</div></div>
+  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">📝 トレードジャーナル履歴</span></div>
+  <div class="alert-list" id="journal-list">
+    <div class="empty-hint">記録がありません</div>
+  </div>
 </div>
 
-<div class="footer">※ CoinGecko / bitFlyer WS / PWA対応版</div>
+<div class="footer">※ CoinGecko / bitFlyer WS より取得。投資アドバイスではありません。</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -214,15 +501,360 @@ if ('serviceWorker' in navigator) {
 }
 
 const API_BASE = 'https://api.coingecko.com/api/v3';
-let priceHistory = [], volumeHistory = [], currentTF = '5m', currentPrice = 0;
+
+let priceHistory = [];
+let volumeHistory = [];
+let currentTF = '5m';
+let currentPrice = 0;
 let alerts = JSON.parse(localStorage.getItem('btc_alerts') || '[]');
 let journal = JSON.parse(localStorage.getItem('btc_journal') || '[]');
-let priceChart = null, ws = null, currentRR = { entry: null, stop: null, target: null, show: false };
-let latestStats = {}; // To hold data for journal
+let priceChart = null;
+let macdChart = null;
+let refreshTimer = null;
+let candleLabels = [];
+let usingFallbackPrice = false;
+let usingFallbackHistory = false;
+let usingCachedPrice = false;
+let usingCachedHistory = false;
+let activePriceSource = 'CoinGecko';
 
-function fmt(n) { return !n && n!==0 ? '--' : '¥' + Math.round(n).toLocaleString('ja-JP'); }
+// WebSocket & Throttle variables
+let ws = null;
+let wsReconnectTimer = null;
+let throttleTimer = null;
+let currentRR = { entry: null, stop: null, target: null, show: false };
+let latestStats = {}; // ジャーナル用の一時データ保存
 
-// 統計処理関数（Zスコア）
+const PRICE_CACHE_KEY = 'btc_price_cache_v2';
+const HISTORY_CACHE_KEY = 'btc_history_cache_v2';
+const TRADE_MODE_KEY = 'btc_trade_mode_v1';
+const WEBHOOK_KEY = 'btc_webhook_url';
+const RR_TOGGLE_KEY = 'btc_show_rr_lines';
+const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
+const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
+
+const FALLBACK_PRICE = {
+  jpy: 10450000,
+  jpy_24h_change: 0.42,
+  jpy_24h_vol: 564321.1,
+  jpy_24h_high: 10580000,
+  jpy_24h_low: 10280000
+};
+
+function buildFallbackHistory(basePrice = FALLBACK_PRICE.jpy) {
+  const raw = Array.from({ length: 96 }, (_, i) => {
+    const trend = (i - 47) * 160;
+    const wave = Math.sin(i / 8) * 12000 + Math.cos(i / 18) * 5000;
+    return basePrice + trend + wave;
+  });
+  return raw.map((value, i, arr) => {
+    const prev = arr[Math.max(0, i - 1)];
+    const next = arr[Math.min(arr.length - 1, i + 1)];
+    return (prev + value + next) / 3;
+  });
+}
+
+function fmt(n) {
+  if (!n && n !== 0) return '--';
+  return '¥' + Math.round(n).toLocaleString('ja-JP');
+}
+
+function fmtSmall(n) {
+  if (!n && n !== 0) return '--';
+  const abs = Math.abs(n);
+  if (abs >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+  if (abs >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return Math.round(n).toLocaleString('ja-JP');
+}
+
+function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+function updateDataBanner() {
+  const banner = document.getElementById('error-banner');
+  if (!banner) return;
+  const messages = [];
+  if (activePriceSource && activePriceSource !== 'CoinGecko' && activePriceSource !== 'bitFlyer WS' && !usingCachedPrice && !usingFallbackPrice) messages.push('公開APIで価格を補完しています。');
+  if (usingCachedPrice) messages.push('価格APIに接続できないため、直近成功データを表示しています。');
+  if (usingCachedHistory) messages.push('履歴APIに接続できないため、直近成功チャートを表示しています。');
+  if (usingFallbackPrice) messages.push('価格APIに接続できないため、参考値で表示しています。');
+  if (usingFallbackHistory) messages.push('履歴APIに接続できないため、参考チャートで表示しています。');
+
+  if (!messages.length) {
+    banner.className = 'error-banner';
+    banner.style.display = 'none';
+    banner.textContent = 'データ取得に失敗しました。インターネット接続を確認して「更新」を押してください。';
+    return;
+  }
+  banner.className = 'error-banner fallback';
+  banner.style.display = 'block';
+  banner.textContent = messages.join(' ');
+}
+
+function loadRiskSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('btc_risk_settings') || '{}');
+    if (saved.balance) document.getElementById('account-balance').value = saved.balance;
+    if (saved.riskPct) document.getElementById('risk-percent').value = saved.riskPct;
+    document.getElementById('webhook-url').value = localStorage.getItem(WEBHOOK_KEY) || '';
+    document.getElementById('toggle-rr-lines').checked = (localStorage.getItem(RR_TOGGLE_KEY) === 'true');
+  } catch (e) {}
+}
+
+function saveRiskSettings() {
+  const balance = parseFloat(document.getElementById('account-balance').value) || 0;
+  const riskPct = parseFloat(document.getElementById('risk-percent').value) || 1;
+  try {
+    localStorage.setItem('btc_risk_settings', JSON.stringify({
+      balance: Math.max(0, Math.round(balance)),
+      riskPct: clamp(riskPct, 0.1, 5)
+    }));
+  } catch (e) {}
+}
+
+function saveWebhook() { localStorage.setItem(WEBHOOK_KEY, document.getElementById('webhook-url').value); }
+function saveRRToggle() { localStorage.setItem(RR_TOGGLE_KEY, document.getElementById('toggle-rr-lines').checked); }
+function loadTradeMode() {
+  const mode = localStorage.getItem(TRADE_MODE_KEY) || 'spot';
+  const el = document.getElementById('trade-mode-select');
+  if(el) el.value = mode;
+}
+function saveTradeMode() {
+  const el = document.getElementById('trade-mode-select');
+  if(el) localStorage.setItem(TRADE_MODE_KEY, el.value);
+}
+
+function readCache(key, maxAge) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(key) || 'null');
+    if (!cached || !cached.savedAt) return null;
+    if (Date.now() - cached.savedAt > maxAge) return null;
+    return cached;
+  } catch (e) { return null; }
+}
+
+function writeCache(key, payload) {
+  try { localStorage.setItem(key, JSON.stringify({ ...payload, savedAt: Date.now() })); } catch (e) {}
+}
+
+function setSafetyText(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
+function setTradeText(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
+function formatSignedPoint(n) { return (n >= 0 ? '+' : '') + n + '点'; }
+
+function getEntryGrade(score) {
+  if (score >= 80) return { label: '🟢 強気', statusText: '🟢 強気', className: 'signal signal-safe', scoreClass: 'entry-score-strong', color: 'var(--green)' };
+  if (score >= 60) return { label: '🟡 検討', statusText: '🟡 検討', className: 'signal signal-watch', scoreClass: 'entry-score-watch', color: 'var(--yellow)' };
+  return { label: '🔴 見送り', statusText: '🔴 見送り', className: 'signal signal-risk', scoreClass: 'entry-score-skip', color: 'var(--red)' };
+}
+
+function renderScoreBreakdown(parts, total) {
+  const el = document.getElementById('score-breakdown');
+  if (!el) return;
+  const rows = parts.map(part => {
+    const width = Math.min(100, Math.round(Math.abs(part.points) / Math.max(1, part.maxAbs) * 100));
+    const color = part.points > 0 ? 'var(--green)' : part.points < 0 ? 'var(--red)' : 'var(--text3)';
+    return `
+      <div class="score-row">
+        <strong>${part.label}</strong>
+        <div class="score-bar"><div class="score-bar-fill" style="width:${width}%;background:${color};"></div></div>
+        <span class="score-points" style="color:${color};">${formatSignedPoint(part.points)}</span>
+      </div>
+    `;
+  }).join('');
+  const grade = getEntryGrade(total);
+  el.innerHTML = `
+    <div class="score-row">
+      <strong>合計</strong>
+      <div class="score-bar"><div class="score-bar-fill" style="width:${total}%;background:${grade.color};"></div></div>
+      <span class="score-points ${grade.scoreClass}">${total}点</span>
+    </div>
+    ${rows}
+  `;
+}
+
+function generateEntryRationale({ grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25, volChange, volatility, rr, nearResistance, nearSupport, zScore, current, stop, target, size, dataState }) {
+  const positives = [];
+  const cautions = [];
+  if (ma5 && ma25) {
+    if (ma5 > ma25) positives.push('短期MAが中期MAを上回っており、短期トレンドは上向きです');
+    else cautions.push('短期MAが中期MAを下回っており、上値は重めです');
+  }
+  if (macdVal > 0) positives.push('MACDはプラス圏で、買い方向の勢いがあります');
+  else cautions.push('MACDはマイナス圏で、下落方向の勢いが残っています');
+  if (rsi >= 45 && rsi <= 65) positives.push('RSIは中立〜やや強めで、過熱しすぎていません');
+  else if (rsi >= 72) cautions.push('RSIが高く、短期的な買われ過ぎに注意が必要です');
+  else if (rsi <= 28) cautions.push('RSIが低く、売られ過ぎですが反転確認が必要です');
+  else cautions.push('RSIは明確な追い風ではありません');
+  
+  if (zScore <= -2) positives.push('Zスコア的に売られすぎ水準に達しており、反発の期待値が高いです');
+  else if (zScore >= 2) cautions.push('Zスコアが異常値レベルの過熱を示しており、反落リスク大です');
+
+  if (volChange > 10) positives.push('出来高が増えており、値動きの信頼度が上がっています');
+  else if (volChange < -10) cautions.push('出来高が弱く、ブレイクの信頼度は低めです');
+  if (nearResistance) cautions.push('レジスタンスが近く、利幅より反落リスクが目立ちます');
+  if (nearSupport) cautions.push('サポートが近く、ショートは反発リスクがあります');
+  if (volatility > 1.2) cautions.push('ボラティリティが高く、損切り幅が広がりやすい状態です');
+  else if (volatility <= 0.7) positives.push('ボラティリティは落ち着いており、リスク管理しやすい状態です');
+  if (rr >= 2) positives.push('リスクリワードは2倍以上で、損益バランスは良好です');
+  else if (rr < 1.5) cautions.push('リスクリワードが1.5倍未満で、無理に入る優位性は低めです');
+  if (dataState !== 'リアルタイム' && dataState !== 'WSリアルタイム') cautions.unshift(dataState + 'のため、新規判断は慎重にしてください');
+  
+  let action = '';
+  if (entryScore >= 80 && direction !== 'neutral') {
+    action = `${grade.label}。${directionLabel}で条件は比較的そろっています。入る場合はエントリー${fmt(current)}、損切り${fmt(stop)}、利確${fmt(target)}を目安に、推奨数量${size.toFixed(5)} BTC以内で検討します。`;
+  } else if (entryScore >= 60 && direction !== 'neutral') {
+    action = `${grade.label}。${directionLabel}ですが、まだ確認待ちの材料があります。すぐに飛び乗るより、押し目・戻り・出来高の増加を確認してから、数量を抑えて検討する場面です。`;
+  } else {
+    action = `${grade.label}。現時点では優位性が十分ではないため、見送りを優先します。方向感がそろうまで待ち、無理なエントリーは避ける場面です。`;
+  }
+  const positiveText = positives.length ? `好材料は「${positives.slice(0, 3).join('」「')}」です。` : '明確な好材料はまだ少ない状態です。';
+  const cautionText = cautions.length ? `注意点は「${cautions.slice(0, 3).join('」「')}」です。` : '大きな警戒材料は限定的です。';
+  return `${action} ${positiveText} ${cautionText}`;
+}
+
+function applyTradeModeDisplay() {
+  const modeEl = document.getElementById('trade-mode-select');
+  if (!modeEl) return;
+  const mode = modeEl.value;
+  const directionStr = document.getElementById('safety-direction').textContent;
+  const isShort = directionStr.includes('ショート');
+  const isLong = directionStr.includes('ロング');
+
+  const setLabel = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  const noteEl = document.getElementById('spot-only-note');
+  const rationaleBody = document.getElementById('entry-rationale-body');
+
+  if (mode === 'spot') {
+    setLabel('label-safety-entry', '買い候補');
+    setLabel('label-safety-stop', '損切り目安');
+    setLabel('label-safety-target', '利確目安');
+    setLabel('label-safety-size', '買付上限');
+    setLabel('label-plan-entry', '買い候補');
+    setLabel('label-plan-stop', '損切り');
+    setLabel('label-plan-target', '利確');
+    setLabel('label-plan-size', '買付上限');
+
+    if (isShort) {
+      document.getElementById('safety-direction').textContent = '下落警戒';
+      document.getElementById('safety-entry').textContent = '--';
+      document.getElementById('safety-stop').textContent = '--';
+      document.getElementById('safety-target').textContent = '--';
+      if(document.getElementById('safety-size')) document.getElementById('safety-size').textContent = '--';
+      document.getElementById('plan-entry').textContent = '--';
+      document.getElementById('plan-stop').textContent = '--';
+      document.getElementById('plan-target').textContent = '--';
+      document.getElementById('plan-size').textContent = '--';
+
+      const status = document.getElementById('safety-status');
+      if (status) { status.className = 'signal signal-risk'; status.textContent = '🔴 買い見送り'; }
+      const score = document.getElementById('safety-score');
+      if (score) { score.textContent = '買い見送り'; score.className = 'safety-value entry-score-skip'; }
+      
+      if (noteEl) {
+        noteEl.textContent = '現物ロングのみモード：現在はショート寄り＝下落警戒のため、買いエントリー・利確・推奨数量は表示しません。買うならロング条件がそろうまで待つ場面です。';
+        noteEl.style.display = 'block';
+      }
+      if (rationaleBody) {
+        const base = rationaleBody.textContent.replace(/\s*現物ロングのみモードでは[\s\S]*$/, '').trim();
+        rationaleBody.textContent = base + ' 現物ロングのみモードでは、ショート寄りの場面は「買い見送り」として扱います。';
+      }
+      
+      currentRR.show = false;
+      renderPriceChart();
+    } else {
+      if (noteEl) noteEl.style.display = 'none';
+    }
+  } else {
+    // Both Mode
+    if (noteEl) noteEl.style.display = 'none';
+    if (isShort) {
+      setLabel('label-safety-entry', 'ショート入口');
+      setLabel('label-safety-stop', '損切り(上)');
+      setLabel('label-safety-target', '利確/買戻し');
+      setLabel('label-safety-size', '上限数量');
+      setLabel('label-plan-entry', 'ショート入口');
+      setLabel('label-plan-stop', '損切り(上)');
+      setLabel('label-plan-target', '利確/買戻し');
+      setLabel('label-plan-size', '上限数量');
+    } else if (isLong) {
+      setLabel('label-safety-entry', '買い入口');
+      setLabel('label-safety-stop', '損切り(下)');
+      setLabel('label-safety-target', '利確/売却');
+      setLabel('label-safety-size', '買付上限');
+      setLabel('label-plan-entry', '買い入口');
+      setLabel('label-plan-stop', '損切り(下)');
+      setLabel('label-plan-target', '利確/売却');
+      setLabel('label-plan-size', '買付上限');
+    } else {
+      setLabel('label-safety-entry', 'エントリー');
+      setLabel('label-safety-stop', '損切り目安');
+      setLabel('label-safety-target', '利確目安');
+      setLabel('label-safety-size', '上限数量');
+      setLabel('label-plan-entry', 'エントリー');
+      setLabel('label-plan-stop', '損切り');
+      setLabel('label-plan-target', '利確');
+      setLabel('label-plan-size', '推奨数量');
+    }
+  }
+}
+
+// 指標計算群
+function calcMA(arr, n) { if (arr.length < n) return null; return arr.slice(-n).reduce((a, b) => a + b, 0) / n; }
+function calcRSI(arr, n = 14) {
+  if (arr.length < n + 1) return 50;
+  const slice = arr.slice(-(n + 1));
+  const changes = slice.map((v, i, a) => i === 0 ? 0 : v - a[i - 1]).slice(1);
+  const gains = changes.map(c => Math.max(c, 0));
+  const losses = changes.map(c => Math.max(-c, 0));
+  const ag = gains.reduce((a, b) => a + b, 0) / n;
+  const al = losses.reduce((a, b) => a + b, 0) / n;
+  if (al === 0) return 100;
+  return 100 - 100 / (1 + ag / al);
+}
+function calcEMA(arr, n) {
+  if (!arr.length) return 0;
+  if (arr.length < n) return arr[arr.length - 1];
+  const k = 2 / (n + 1);
+  let ema = arr.slice(0, n).reduce((a, b) => a + b, 0) / n;
+  for (let i = n; i < arr.length; i++) ema = arr[i] * k + ema * (1 - k);
+  return ema;
+}
+function calcBB(arr, n = 20) {
+  if (arr.length < n) return null;
+  const slice = arr.slice(-n);
+  const mid = slice.reduce((a, b) => a + b, 0) / n;
+  const variance = slice.map(v => (v - mid) ** 2).reduce((a, b) => a + b, 0) / n;
+  const std = Math.sqrt(variance);
+  return { upper: mid + 2 * std, mid, lower: mid - 2 * std };
+}
+function calcATR(arr, n = 14) {
+  if (arr.length < 2) return 0;
+  const values = arr.slice(-n);
+  const diffs = [];
+  for (let i = 1; i < values.length; i += 1) diffs.push(Math.abs(values[i] - values[i - 1]));
+  if (!diffs.length) return 0;
+  return diffs.reduce((a, b) => a + b, 0) / diffs.length;
+}
+function calcVolatility(arr, n = 14) {
+  if (arr.length < 2) return 0;
+  const slice = arr.slice(-n);
+  const mean = slice.reduce((a, b) => a + b, 0) / slice.length;
+  const variance = slice.map(v => (v - mean) ** 2).reduce((a, b) => a + b, 0) / slice.length;
+  return Math.sqrt(variance) / mean * 100;
+}
+function calcMomentum(arr, n = 10) {
+  if (arr.length < n + 1) return 0;
+  const current = arr[arr.length - 1];
+  const past = arr[arr.length - 1 - n];
+  return (current - past) / past * 100;
+}
+function calcVolumeStrength(volumeHistory) {
+  if (!volumeHistory || volumeHistory.length < 2) return 0;
+  const recent = volumeHistory.slice(-10);
+  const prev = volumeHistory.slice(-20, -10);
+  const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+  const prevAvg = prev.length ? prev.reduce((a, b) => a + b, 0) / prev.length : recentAvg;
+  return ((recentAvg - prevAvg) / Math.max(prevAvg, 1)) * 100;
+}
 function calcZScore(arr, n = 20) {
   if (arr.length < n) return 0;
   const slice = arr.slice(-n);
@@ -231,77 +863,738 @@ function calcZScore(arr, n = 20) {
   const std = Math.sqrt(variance);
   return std === 0 ? 0 : (arr[arr.length - 1] - mean) / std;
 }
-function calcRSI(arr, n=14) {
-  if (arr.length < n + 1) return 50;
-  const changes = arr.slice(-(n + 1)).map((v, i, a) => i === 0 ? 0 : v - a[i - 1]).slice(1);
-  const ag = changes.filter(c => c > 0).reduce((a, b) => a + b, 0) / n;
-  const al = changes.filter(c => c < 0).map(c => -c).reduce((a, b) => a + b, 0) / n;
-  return al === 0 ? 100 : 100 - (100 / (1 + ag / al));
-}
-function calcBB(arr, n=20) {
-  if (arr.length < n) return null;
-  const slice = arr.slice(-n);
-  const mid = slice.reduce((a,b)=>a+b,0)/n;
-  const std = Math.sqrt(slice.map(v=>(v-mid)**2).reduce((a,b)=>a+b,0)/n);
-  return { upper: mid + 2*std, mid, lower: mid - 2*std, width: (4*std/mid)*100 };
-}
 
 function updateSafetyPanel() {
+  const status = document.getElementById('safety-status');
+  const reasonsEl = document.getElementById('safety-reasons');
+  if (!status || !reasonsEl) return;
+
   const current = currentPrice || priceHistory[priceHistory.length - 1];
-  if (!current || priceHistory.length < 26) return;
+  if (!current || priceHistory.length < 26) {
+    status.className = 'signal signal-neutral'; status.textContent = 'データ待ち';
+    setSafetyText('safety-score', '--'); setSafetyText('safety-direction', '--');
+    setSafetyText('safety-entry', '--'); setSafetyText('safety-stop-gap', '--');
+    setSafetyText('safety-stop', '--'); setSafetyText('safety-target', '--');
+    if(document.getElementById('safety-size')) setSafetyText('safety-size', '--');
+    setTradeText('plan-entry', '--'); setTradeText('plan-stop', '--');
+    setTradeText('plan-target', '--'); setTradeText('plan-size', '--');
+    setTradeText('entry-rationale-body', '価格データと履歴データを取得中です。取得後にエントリー根拠を自動生成します。');
+    renderScoreBreakdown([], 0);
+    reasonsEl.innerHTML = '<div class="safety-reason"><span>データ</span><strong>取得中</strong></div>';
+    currentRR.show = false;
+    applyTradeModeDisplay();
+    return;
+  }
+
+  const balanceInput = document.getElementById('account-balance');
+  const riskInput = document.getElementById('risk-percent');
+  const balance = Math.max(0, parseFloat(balanceInput.value) || 0);
+  const riskPct = clamp(parseFloat(riskInput.value) || 1, 0.1, 5);
+  riskInput.value = riskPct;
 
   const rsi = calcRSI(priceHistory);
+  const ema12 = calcEMA(priceHistory, 12);
+  const ema26 = calcEMA(priceHistory, 26);
+  const macdVal = ema12 - ema26;
+  const ma5 = calcMA(priceHistory, 5);
+  const ma25 = calcMA(priceHistory, 25);
   const bb = calcBB(priceHistory);
+  const atr = Math.max(calcATR(priceHistory, 14), current * 0.002);
+  const atrPct = atr / current * 100;
+  const mom = calcMomentum(priceHistory, 10);
+  const volatility = calcVolatility(priceHistory, 14);
+  const volChange = calcVolumeStrength(volumeHistory);
   const zScore = calcZScore(priceHistory, 20);
   
-  // Update UI Stats
-  document.getElementById('z-score-val').textContent = zScore.toFixed(2);
-  document.getElementById('bb-width').textContent = bb ? bb.width.toFixed(2) + '%' : '--';
-  const rsiBar = document.getElementById('rsi-fill');
-  document.getElementById('rsi-val').textContent = rsi.toFixed(1);
-  rsiBar.style.width = Math.min(100, rsi) + '%';
-  rsiBar.style.background = rsi > 70 ? 'var(--red)' : rsi < 30 ? 'var(--green)' : 'var(--blue)';
+  const support = bb ? bb.lower : current * 0.98;
+  const resistance = bb ? bb.upper : current * 1.02;
+  const nearResistanceForEntry = ((resistance - current) / Math.max(1, current)) * 100 < volatility;
+  const nearSupportForEntry = ((current - support) / Math.max(1, support)) * 100 < volatility;
 
-  const ma5 = priceHistory.slice(-5).reduce((a,b)=>a+b,0)/5;
-  const ma25 = priceHistory.slice(-25).reduce((a,b)=>a+b,0)/25;
-  let trendScore = (ma5 > ma25 ? 1 : -1) + (current > bb.mid ? 1 : -1) + (zScore > 0 ? 1 : -1);
-  const direction = trendScore >= 1 ? 'long' : trendScore <= -1 ? 'short' : 'neutral';
-  
-  const riskDistance = current * 0.005; // Simplified for length
+  let trendScore = 0;
+  trendScore += macdVal > 0 ? 1 : -1;
+  if (ma5 && ma25) trendScore += ma5 > ma25 ? 1 : -1;
+  trendScore += mom > 0.25 ? 1 : mom < -0.25 ? -1 : 0;
+  if (bb) trendScore += current > bb.mid ? 1 : -1;
+
+  const direction = trendScore >= 2 ? 'long' : trendScore <= -2 ? 'short' : 'neutral';
+  const directionLabel = direction === 'long' ? 'ロング寄り' : direction === 'short' ? 'ショート寄り' : '中立';
+  const riskDistance = Math.max(atr * 1.5, current * 0.004);
   const stop = direction === 'short' ? current + riskDistance : current - riskDistance;
-  const target = direction === 'short' ? current - riskDistance*2 : current + riskDistance*2;
+  let target = current;
+  if (direction === 'long') {
+    target = resistance > current ? Math.min(current + riskDistance * 2, resistance) : current + riskDistance;
+  } else if (direction === 'short') {
+    target = support < current ? Math.max(current - riskDistance * 2, support) : current - riskDistance;
+  }
+  const rewardDistance = Math.abs(target - current);
+  const rr = rewardDistance / Math.max(1, riskDistance);
+  const riskYen = balance * riskPct / 100;
+  const rawSize = riskDistance > 0 ? riskYen / riskDistance : 0;
+  const spotSizeCap = balance > 0 ? balance / current : rawSize;
+  const size = direction === 'neutral' ? 0 : Math.min(rawSize, spotSizeCap);
+  
+  if (direction !== 'neutral') {
+    currentRR = { entry: current, stop: stop, target: target, show: true };
+  } else {
+    currentRR.show = false;
+  }
 
-  // 統計的Zスコアによる採点ロジック（異常値検定）
-  // Z > +2 (買われすぎ=マイナス評価), Z < -2 (売られすぎ=プラス評価)
   const scoreParts = [
-    { label: 'MA', points: ma5 > ma25 ? 20 : -20, maxAbs: 20 },
+    { label: 'MA', points: ma5 && ma25 ? (ma5 > ma25 ? 20 : -20) : 0, maxAbs: 20 },
+    { label: 'MACD', points: macdVal > 0 ? 15 : -15, maxAbs: 15 },
     { label: 'RSI', points: (rsi >= 45 && rsi <= 65) ? 10 : (rsi >= 72 || rsi <= 28) ? -15 : -5, maxAbs: 15 },
-    { label: 'Z検定', points: zScore <= -2 ? 20 : zScore >= 2 ? -20 : (zScore>0?5:-5), maxAbs: 20 },
+    { label: 'Z検定', points: zScore <= -2 ? 15 : zScore >= 2 ? -15 : (zScore > 0 ? 5 : -5), maxAbs: 15 },
+    { label: '出来高', points: volChange > 10 ? 10 : volChange < -10 ? -10 : 0, maxAbs: 10 },
+    { label: 'サポレジ', points: nearResistanceForEntry ? -10 : nearSupportForEntry ? -10 : 5, maxAbs: 10 },
+    { label: 'ボラ', points: volatility > 1.2 ? -15 : volatility > 0.7 ? -7 : 5, maxAbs: 15 },
+    { label: 'RR', points: rr >= 2 ? 10 : rr < 1.5 ? -10 : 0, maxAbs: 10 }
   ];
   
-  let entryScore = Math.max(0, Math.min(100, Math.round(50 + scoreParts.reduce((s, p) => s + p.points, 0))));
+  let entryScore = Math.round(clamp(50 + scoreParts.reduce((sum, part) => sum + part.points, 0), 0, 100));
+  if (usingFallbackPrice || usingFallbackHistory) entryScore = Math.min(entryScore, 59);
+  else if (usingCachedPrice || usingCachedHistory) entryScore = Math.min(entryScore, 79);
   
+  const grade = getEntryGrade(entryScore);
+  
+  // Update latestStats for Journaling
   latestStats = { price: current, score: entryScore, dir: direction, rsi, zScore };
-  if(direction !== 'neutral') currentRR = { entry: current, stop, target, show: true }; else currentRR.show = false;
 
-  document.getElementById('safety-score').textContent = entryScore + '点';
-  document.getElementById('safety-direction').textContent = direction === 'long' ? 'ロング' : direction === 'short' ? 'ショート' : '中立';
-  document.getElementById('safety-entry').textContent = fmt(current);
-  document.getElementById('safety-stop').textContent = fmt(stop);
-  document.getElementById('safety-target').textContent = fmt(target);
+  status.className = grade.className;
+  status.textContent = grade.statusText;
+  const scoreEl = document.getElementById('safety-score');
+  if (scoreEl) {
+    scoreEl.textContent = entryScore + '点 / ' + grade.label;
+    scoreEl.className = 'safety-value ' + grade.scoreClass;
+  }
+  
+  renderScoreBreakdown(scoreParts, entryScore);
+  setSafetyText('safety-direction', directionLabel);
+  setSafetyText('safety-entry', direction === 'neutral' ? '--' : fmt(current));
+  setSafetyText('safety-stop-gap', fmtSmall(riskDistance) + ' (' + (riskDistance / current * 100).toFixed(2) + '%)');
+  setSafetyText('safety-stop', direction === 'neutral' ? '--' : fmt(stop));
+  setSafetyText('safety-target', direction === 'neutral' ? '--' : fmt(target));
+  if(document.getElementById('safety-size')) setSafetyText('safety-size', direction === 'neutral' ? '--' : size.toFixed(5) + ' BTC');
+  
+  setTradeText('plan-entry', direction === 'neutral' ? '--' : fmt(current));
+  setTradeText('plan-stop', direction === 'neutral' ? '--' : fmt(stop));
+  setTradeText('plan-target', direction === 'neutral' ? '--' : fmt(target));
+  setTradeText('plan-size', direction === 'neutral' ? '--' : size.toFixed(5) + ' BTC');
 
-  const breakdownHTML = scoreParts.map(p => {
-    const width = Math.min(100, Math.abs(p.points)/p.maxAbs*100);
-    const color = p.points > 0 ? 'var(--green)' : p.points < 0 ? 'var(--red)' : 'var(--text3)';
-    return `<div class="score-row"><strong>${p.label}</strong><div class="score-bar"><div class="score-bar-fill" style="width:${width}%;background:${color};"></div></div><span style="color:${color}">${p.points>0?'+':''}${p.points}点</span></div>`;
-  }).join('');
-  document.getElementById('score-breakdown').innerHTML = breakdownHTML;
+  const dataState = activePriceSource === 'bitFlyer WS' ? 'WSリアルタイム' : usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム';
+  
+  setTradeText('entry-rationale-body', generateEntryRationale({
+    grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25,
+    volChange, volatility, rr, nearResistance: nearResistanceForEntry,
+    nearSupport: nearSupportForEntry, zScore, current, stop, target, size, dataState
+  }));
+
+  const reasons = [
+    ['データ', dataState],
+    ['トレンド', directionLabel + ' (' + trendScore + ')'],
+    ['過熱感', 'RSI ' + rsi.toFixed(1)],
+    ['ボラ', 'ATR ' + atrPct.toFixed(2) + '%'],
+    ['統計', 'Zスコア ' + zScore.toFixed(2)],
+    ['RR', rr.toFixed(2) + ' : 1'],
+    ['損失上限', fmt(riskYen) + ' / 回']
+  ];
+
+  reasonsEl.innerHTML = reasons.map(([label, value]) => (
+    '<div class="safety-reason"><span>' + label + '</span><strong>' + value + '</strong></div>'
+  )).join('');
+
+  applyTradeModeDisplay();
   renderPriceChart();
 }
 
-// ジャーナル（トレード記録）機能
+function updateIndicators() {
+  if (priceHistory.length < 2) return;
+  const current = currentPrice || priceHistory[priceHistory.length - 1];
+
+  const rsi = calcRSI(priceHistory);
+  document.getElementById('rsi-val').textContent = rsi.toFixed(1);
+  const rsiBar = document.getElementById('rsi-fill');
+  rsiBar.style.width = Math.min(100, rsi) + '%';
+  rsiBar.style.background = rsi > 70 ? 'var(--red)' : rsi < 30 ? 'var(--green)' : 'var(--blue)';
+  const rsiSig = document.getElementById('rsi-signal');
+  if (rsi > 70) { rsiSig.className = 'signal signal-sell'; rsiSig.textContent = '買われ過ぎ → 売りシグナル'; }
+  else if (rsi < 30) { rsiSig.className = 'signal signal-buy'; rsiSig.textContent = '売られ過ぎ → 買いシグナル'; }
+  else { rsiSig.className = 'signal signal-neutral'; rsiSig.textContent = '中立ゾーン (' + rsi.toFixed(1) + ')'; }
+
+  const ema12 = calcEMA(priceHistory, 12);
+  const ema26 = calcEMA(priceHistory, 26);
+  const macdVal = ema12 - ema26;
+  document.getElementById('macd-val').textContent = fmtSmall(macdVal);
+  const macdSig = document.getElementById('macd-signal');
+  if (macdVal > 0) { macdSig.className = 'signal signal-buy'; macdSig.textContent = 'ゴールデンクロス傾向'; }
+  else { macdSig.className = 'signal signal-sell'; macdSig.textContent = 'デッドクロス傾向'; }
+
+  let bb = calcBB(priceHistory);
+  if (bb) {
+    document.getElementById('bb-upper').textContent = fmt(bb.upper);
+    document.getElementById('bb-mid').textContent = fmt(bb.mid);
+    document.getElementById('bb-lower').textContent = fmt(bb.lower);
+    const bbSig = document.getElementById('bb-signal');
+    if (current > bb.upper) { bbSig.className = 'signal signal-sell'; bbSig.textContent = '上限超え → 過熱注意'; }
+    else if (current < bb.lower) { bbSig.className = 'signal signal-buy'; bbSig.textContent = '下限割れ → 反発注意'; }
+    else { bbSig.className = 'signal signal-neutral'; bbSig.textContent = 'バンド内 (通常レンジ)'; }
+  }
+
+  const ma5 = calcMA(priceHistory, 5);
+  const ma25 = calcMA(priceHistory, 25);
+  const ma75 = calcMA(priceHistory, 75);
+  document.getElementById('ma5').textContent = fmt(ma5);
+  document.getElementById('ma25').textContent = fmt(ma25);
+  document.getElementById('ma75').textContent = fmt(ma75);
+  const maSig = document.getElementById('ma-signal');
+  if (ma5 && ma25) {
+    if (ma5 > ma25) { maSig.className = 'signal signal-buy'; maSig.textContent = '短期 > 長期 (上昇傾向)'; }
+    else { maSig.className = 'signal signal-sell'; maSig.textContent = '短期 < 長期 (下降傾向)'; }
+  }
+
+  const volChange = calcVolumeStrength(volumeHistory);
+  document.getElementById('volume-change').textContent = volChange >= 0 ? '+' + volChange.toFixed(1) + '%' : volChange.toFixed(1) + '%';
+  document.getElementById('volume-strength').textContent = volChange > 10 ? '強' : volChange < -10 ? '弱' : '標準';
+  document.getElementById('volume-trend').textContent = volChange > 0 ? '買い材料' : '売り材料';
+  const volumeSignal = document.getElementById('volume-signal');
+  if (volChange > 10) { volumeSignal.className = 'signal signal-buy'; volumeSignal.textContent = '出来高が拡大し、上昇の信頼度が高い'; }
+  else if (volChange < -10) { volumeSignal.className = 'signal signal-sell'; volumeSignal.textContent = '出来高が縮小し、下落の圧力が残る'; }
+  else { volumeSignal.className = 'signal signal-neutral'; volumeSignal.textContent = '出来高は概ね安定'; }
+
+  const zScore = calcZScore(priceHistory, 20);
+  const atr = calcATR(priceHistory, 14);
+  const vol = calcVolatility(priceHistory, 14);
+  const mom = calcMomentum(priceHistory, 10);
+  
+  document.getElementById('z-score-val').textContent = zScore.toFixed(2);
+  document.getElementById('atr-val').textContent = fmtSmall(atr);
+  document.getElementById('vol-val').textContent = vol.toFixed(2) + '%';
+  
+  const trendSig = document.getElementById('trend-signal');
+  if (zScore >= 2) { trendSig.className = 'signal signal-sell'; trendSig.textContent = 'Zスコア過熱 (統計的異常値)'; }
+  else if (zScore <= -2) { trendSig.className = 'signal signal-buy'; trendSig.textContent = 'Zスコア売られすぎ (反発警戒)'; }
+  else { trendSig.className = 'signal signal-neutral'; trendSig.textContent = '統計的正常範囲'; }
+
+  const macdStrength = ema12 - ema26;
+  const rsiDev = rsi - 50;
+  const bbDev = bb ? ((current - bb.mid) / bb.mid) * 100 : 0;
+  const support = bb ? bb.lower : current * 0.98;
+  const resistance = bb ? bb.upper : current * 1.02;
+  const supportGap = ((current - support) / Math.max(1, support)) * 100;
+  const resistanceGap = ((resistance - current) / Math.max(1, current)) * 100;
+  
+  document.getElementById('support-level').textContent = fmt(support);
+  document.getElementById('resistance-level').textContent = fmt(resistance);
+  document.getElementById('support-gap').textContent = 'S ' + supportGap.toFixed(2) + '% / R ' + resistanceGap.toFixed(2) + '%';
+  const supportSignal = document.getElementById('support-signal');
+  if (current <= support) { supportSignal.className = 'signal signal-buy'; supportSignal.textContent = 'サポート割れ・反発確認'; }
+  else if (current >= resistance) { supportSignal.className = 'signal signal-sell'; supportSignal.textContent = 'レジスタンス超え・過熱確認'; }
+  else if (supportGap < resistanceGap) { supportSignal.className = 'signal signal-buy'; supportSignal.textContent = 'サポート側に近い'; }
+  else { supportSignal.className = 'signal signal-sell'; supportSignal.textContent = 'レジスタンス側に近い'; }
+
+  document.getElementById('macd-strength').textContent = macdStrength >= 0 ? '+' + macdStrength.toFixed(1) : macdStrength.toFixed(1);
+  document.getElementById('rsi-div').textContent = rsiDev.toFixed(1) + 'pt';
+  document.getElementById('bb-dev').textContent = bbDev.toFixed(2) + '%';
+
+  const advancedSig = document.getElementById('advanced-signal');
+  const summaryEl = document.getElementById('summary-comment');
+  const trendScore = [
+    macdStrength > 0 ? 1 : -1,
+    ma5 && ma25 ? (ma5 > ma25 ? 1 : -1) : 0,
+    mom > 0.5 ? 1 : mom < -0.5 ? -1 : 0,
+    bbDev > 0.2 ? 1 : bbDev < -0.2 ? -1 : 0
+  ].reduce((sum, value) => sum + value, 0);
+  const dataIsFallback = usingFallbackPrice || usingFallbackHistory;
+  const dataIsCached = usingCachedPrice || usingCachedHistory;
+  const trendLabel = trendScore >= 3 ? '上昇優勢' : trendScore <= -3 ? '下落優勢' : trendScore > 0 ? 'やや上向き' : trendScore < 0 ? 'やや下向き' : '中立';
+  const rsiLabel = rsi >= 70 ? '過熱' : rsi <= 30 ? '売られ過ぎ' : rsi >= 60 ? '高め' : rsi <= 40 ? '低め' : '中立';
+  const volLabel = vol > 1.2 ? '高い' : vol > 0.7 ? 'やや高い' : '通常';
+  const nearResistance = resistanceGap < vol;
+  const nearSupport = supportGap < vol;
+
+  let verdict = '方向感なし・見送り寄り';
+  let verdictText = '上昇と下落の材料が混ざっています。無理に入らず、方向がそろうまで待つ場面です。';
+  let nextCheck = 'MA5/MA25、RSI 45-60、出来高拡大が同じ方向へそろうか確認。';
+  let summaryClass = 'summary-neutral';
+
+  if (dataIsFallback) {
+    verdict = '見送り優先';
+    verdictText = '参考値が混ざっています。実トレード判断には使わず、API復旧後のリアルタイム表示を待つ状態です。';
+    nextCheck = '価格と履歴の両方がリアルタイム表示へ戻ってから再判定。';
+    summaryClass = 'summary-risk';
+  } else if (dataIsCached) {
+    verdict = '直近データ表示・新規判断は慎重';
+    verdictText = 'API取得に失敗したため、直近成功データで表示しています。固定の参考値より信頼できますが、最新価格との差に注意が必要です。';
+    nextCheck = '更新ボタンでリアルタイム取得に戻るか確認し、戻るまでは数量を落とす。';
+    summaryClass = 'summary-neutral';
+  } else if (rsi >= 72 || zScore >= 2.5) {
+    verdict = '過熱・新規買いは待ち';
+    verdictText = 'RSIやZスコアが高く、短期の上値追いは不利になりやすい状態です。押し目か横ばい調整を待つ方が安全です。';
+    nextCheck = 'RSIが65以下へ落ち着くか、直近高値を終値で明確に抜けるか確認。';
+    summaryClass = 'summary-risk';
+  } else if (rsi <= 28 || zScore <= -2.5) {
+    verdict = '売られ過ぎ・反発確認待ち';
+    verdictText = '下げが強く、反発余地はありますが、落ちる勢いも残っています。反転サインなしの買いは危険です。';
+    nextCheck = 'RSI 35回復、陽線連続、MA5上抜けのどれかを確認。';
+    summaryClass = 'summary-neutral';
+  } else if (vol > 1.2) {
+    verdict = 'ボラ高め・サイズ縮小';
+    verdictText = '値幅が大きく、損切り幅も広がりやすい状態です。入るなら数量を小さくし、損失上限を優先してください。';
+    nextCheck = 'ATR低下、ローソク足の値幅縮小、サポレジ付近での反応を確認。';
+    summaryClass = 'summary-risk';
+  } else if (trendScore >= 3 && !nearResistance && rsi < 68) {
+    verdict = 'ロング目線・小さく検討';
+    verdictText = 'MACD、移動平均、モメンタムが上向きで、過熱しすぎていません。ただし損切り前提で小さく見る場面です。';
+    nextCheck = '押し目でMA5を維持するか、直近高値を終値で抜けるか確認。';
+    summaryClass = 'summary-buy';
+  } else if (trendScore <= -3 && !nearSupport && rsi > 32) {
+    verdict = '下落警戒・買い急がない';
+    verdictText = 'MACD、移動平均、モメンタムが下向きで、反発根拠がまだ弱い状態です。買いは待つ判断が無難です。';
+    nextCheck = 'サポート反発、RSI 40回復、MA5上抜けを確認。';
+    summaryClass = 'summary-sell';
+  } else if (trendScore > 0) {
+    verdict = '上向きだが条件待ち';
+    verdictText = nearResistance ? '上向き材料はありますが、レジスタンスが近く、利幅より反落リスクが目立ちます。' : '上向き材料はありますが、まだ全指標がそろっていません。追いかけず確認待ちです。';
+    nextCheck = nearResistance ? 'レジスタンス突破後の定着、または押し目形成を確認。' : 'RSI過熱なし、出来高拡大、MA5維持を確認。';
+    summaryClass = 'summary-neutral';
+  } else if (trendScore < 0) {
+    verdict = '下向きだが条件待ち';
+    verdictText = nearSupport ? '下向き材料はありますが、サポートが近く、反発が出やすい位置です。' : '下向き材料があります。買いは反転確認を待ち、焦って拾わない方が安全です。';
+    nextCheck = nearSupport ? 'サポート割れ継続か、反発してMA5を回復するか確認。' : 'RSI回復、MACD改善、陽線連続を確認。';
+    summaryClass = 'summary-neutral';
+  }
+
+  const advancedClass = summaryClass === 'summary-buy' ? 'signal signal-buy' : summaryClass === 'summary-sell' ? 'signal signal-sell' : summaryClass === 'summary-risk' ? 'signal signal-risk' : 'signal signal-neutral';
+  advancedSig.className = advancedClass;
+  advancedSig.textContent = verdict;
+
+  const flags = [];
+  if (dataIsFallback) flags.push('参考値あり');
+  if (dataIsCached) flags.push('直近成功データ');
+  if (nearResistance) flags.push('レジスタンス近い');
+  if (nearSupport) flags.push('サポート近い');
+  if (volChange > 10) flags.push('出来高拡大');
+  if (volChange < -10) flags.push('出来高縮小');
+  if (!flags.length) flags.push('大きな警戒フラグなし');
+
+  summaryEl.className = 'summary-panel ' + summaryClass;
+  summaryEl.innerHTML = `
+    <div class="summary-verdict"><span>結論</span><strong>${verdict}</strong></div>
+    <div class="summary-copy">${verdictText}</div>
+    <div class="summary-grid">
+      <div class="summary-item"><span>トレンド</span><strong>${trendLabel}</strong></div>
+      <div class="summary-item"><span>RSI</span><strong>${rsi.toFixed(1)} / ${rsiLabel}</strong></div>
+      <div class="summary-item"><span>ボラ</span><strong>${vol.toFixed(2)}% / ${volLabel}</strong></div>
+    </div>
+    <div class="summary-detail"><span>次に見る条件</span><strong>${nextCheck}</strong></div>
+    <div class="summary-flags">${flags.map(flag => `<span>${flag}</span>`).join('')}</div>
+  `;
+}
+
+function isDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
+
+function renderPriceChart(labels) {
+  const ma5Data = priceHistory.map((_, i, a) => {
+    if (i < 4) return null;
+    return a.slice(i - 4, i + 1).reduce((s, v) => s + v, 0) / 5;
+  });
+
+  const showRR = document.getElementById('toggle-rr-lines')?.checked;
+  const entryData = (showRR && currentRR.show) ? priceHistory.map(() => currentRR.entry) : [];
+  const stopData = (showRR && currentRR.show) ? priceHistory.map(() => currentRR.stop) : [];
+  const targetData = (showRR && currentRR.show) ? priceHistory.map(() => currentRR.target) : [];
+
+  const dark = isDark();
+  const gridColor = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const tickColor = dark ? '#666' : '#aaa';
+
+  if (!priceChart) {
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    priceChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels || priceHistory.map((_, i) => i),
+        datasets: [
+          { label: 'BTC/JPY', data: priceHistory, borderColor: '#378add', backgroundColor: 'rgba(55,138,221,0.07)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.35 },
+          { label: 'MA5', data: ma5Data, borderColor: '#1d9e75', borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.35, borderDash: [4, 3] },
+          { label: 'エントリー', data: entryData, borderColor: '#d6a800', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5, 5], hidden: !showRR },
+          { label: '損切り', data: stopData, borderColor: '#e24b4a', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5, 5], hidden: !showRR },
+          { label: '利確', data: targetData, borderColor: '#1d9e75', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5, 5], hidden: !showRR }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { label: ctx => ' ' + fmt(ctx.raw) } } },
+        scales: {
+          x: { ticks: { color: tickColor, font: { size: 10 }, maxTicksLimit: 8, autoSkip: true }, grid: { color: gridColor } },
+          y: { ticks: { color: tickColor, font: { size: 10 }, callback: v => '¥' + (v / 1000000).toFixed(1) + 'M' }, grid: { color: gridColor } }
+        },
+        animation: { duration: 0 }
+      }
+    });
+  } else {
+    if (labels) priceChart.data.labels = labels;
+    priceChart.data.datasets[0].data = priceHistory;
+    priceChart.data.datasets[1].data = ma5Data;
+    priceChart.data.datasets[2].data = entryData; priceChart.data.datasets[2].hidden = !showRR;
+    priceChart.data.datasets[3].data = stopData; priceChart.data.datasets[3].hidden = !showRR;
+    priceChart.data.datasets[4].data = targetData; priceChart.data.datasets[4].hidden = !showRR;
+    priceChart.update('none');
+  }
+}
+
+function renderCandlestickChart() {
+  const canvas = document.getElementById('candlestickChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(1, rect.width || canvas.clientWidth || 600);
+  const height = Math.max(1, rect.height || canvas.clientHeight || 180);
+  canvas.style.width = '100%'; canvas.style.height = '100%';
+  canvas.width = Math.floor(width * dpr); canvas.height = Math.floor(height * dpr);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const recent = priceHistory.slice(-96);
+  if (recent.length < 4) return;
+
+  const labels = candleLabels.slice(-recent.length);
+  const targetCandles = width < 420 ? 16 : 24;
+  const windowSize = Math.max(3, Math.floor(recent.length / targetCandles));
+  const candles = [];
+
+  for (let i = 0; i < recent.length; i += windowSize) {
+    const slice = recent.slice(i, i + windowSize);
+    if (slice.length < 2) continue;
+    candles.push({ open: slice[0], close: slice[slice.length - 1], high: Math.max(...slice), low: Math.min(...slice), label: labels[Math.min(i + slice.length - 1, labels.length - 1)] || '' });
+  }
+
+  if (!candles.length) return;
+
+  const max = Math.max(...candles.map(c => c.high));
+  const min = Math.min(...candles.map(c => c.low));
+  const range = Math.max(1, max - min);
+  const last = candles[candles.length - 1];
+  const pad = range * 0.08;
+  const topValue = max + pad;
+  const bottomValue = min - pad;
+  const valueRange = Math.max(1, topValue - bottomValue);
+  const plot = { left: 8, right: 58, top: 14, bottom: 24 };
+  const plotWidth = width - plot.left - plot.right;
+  const plotHeight = height - plot.top - plot.bottom;
+  const stepX = plotWidth / Math.max(1, candles.length);
+  const bodyWidth = Math.max(5, Math.min(14, stepX * 0.62));
+  const dark = isDark();
+  const gridColor = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+  const tickColor = dark ? '#777' : '#8b8b8b';
+  const textColor = dark ? '#d8d8d8' : '#333';
+  const current = currentPrice || last.close;
+  const yFor = value => plot.top + ((topValue - value) / valueRange) * plotHeight;
+
+  document.getElementById('candle-close').textContent = fmt(last.close);
+  document.getElementById('candle-high').textContent = fmt(max);
+  document.getElementById('candle-low').textContent = fmt(min);
+  document.getElementById('candle-range').textContent = ((range / Math.max(1, min)) * 100).toFixed(2) + '%';
+
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
+  ctx.textBaseline = 'middle'; ctx.strokeStyle = gridColor; ctx.fillStyle = tickColor; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i += 1) {
+    const y = plot.top + (i / 4) * plotHeight;
+    const value = topValue - (i / 4) * valueRange;
+    ctx.beginPath(); ctx.moveTo(plot.left, y); ctx.lineTo(width - plot.right + 8, y); ctx.stroke();
+    ctx.fillText('¥' + (value / 1000000).toFixed(2) + 'M', width - plot.right + 12, y);
+  }
+
+  candles.forEach((c, index) => {
+    const centerX = plot.left + index * stepX + stepX / 2;
+    const x = Math.min(centerX - bodyWidth / 2, width - plot.right - bodyWidth);
+    const yHigh = yFor(c.high); const yLow = yFor(c.low);
+    const yOpen = yFor(c.open); const yClose = yFor(c.close);
+    const isUp = c.close >= c.open;
+    const color = isUp ? '#1d9e75' : '#e24b4a';
+    const bodyTop = Math.min(yOpen, yClose);
+    const bodyHeight = Math.max(2, Math.abs(yClose - yOpen));
+
+    ctx.strokeStyle = color; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(centerX, yHigh); ctx.lineTo(centerX, yLow); ctx.stroke();
+    ctx.fillStyle = isUp ? 'rgba(29,158,117,0.36)' : 'rgba(226,75,74,0.36)';
+    ctx.fillRect(x, bodyTop, bodyWidth, bodyHeight); ctx.strokeRect(x, bodyTop, bodyWidth, bodyHeight);
+  });
+
+  const currentY = yFor(current);
+  ctx.strokeStyle = dark ? 'rgba(216,216,216,0.42)' : 'rgba(17,17,17,0.28)';
+  ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(plot.left, currentY); ctx.lineTo(width - plot.right + 8, currentY); ctx.stroke(); ctx.setLineDash([]);
+
+  const priceLabel = fmt(current);
+  const labelWidth = ctx.measureText(priceLabel).width + 12;
+  ctx.fillStyle = current >= last.open ? '#1d9e75' : '#e24b4a';
+  ctx.fillRect(width - labelWidth - 6, Math.max(2, currentY - 10), labelWidth, 20);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  ctx.fillText(priceLabel, width - labelWidth / 2 - 6, Math.max(12, currentY));
+
+  ctx.textAlign = 'center'; ctx.fillStyle = tickColor;
+  [0, Math.floor((candles.length - 1) / 2), candles.length - 1].forEach(index => {
+    const candle = candles[index]; if (!candle) return;
+    const x = plot.left + index * stepX + stepX / 2;
+    ctx.fillText(candle.label, x, height - 10);
+  });
+
+  const direction = last.close - last.open;
+  const directionText = (direction >= 0 ? '+' : '') + fmtSmall(direction);
+  ctx.textAlign = 'left'; ctx.fillStyle = textColor;
+  ctx.fillText('O ' + fmt(last.open) + '  H ' + fmt(last.high) + '  L ' + fmt(last.low) + '  C ' + fmt(last.close) + '  ' + directionText, plot.left, 10);
+}
+
+function renderMacdChart() {
+  const macdHistory = priceHistory.map((_, i, a) => {
+    if (i < 25) return 0;
+    const slice = a.slice(0, i + 1);
+    return calcEMA(slice, 12) - calcEMA(slice, 26);
+  });
+  const recent = macdHistory.slice(-20);
+  const colors = recent.map(v => v >= 0 ? '#1d9e75' : '#e24b4a');
+
+  if (!macdChart) {
+    const ctx2 = document.getElementById('macdChart').getContext('2d');
+    macdChart = new Chart(ctx2, {
+      type: 'bar',
+      data: { labels: recent.map(() => ''), datasets: [{ data: recent, backgroundColor: colors, borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: { duration: 0 } }
+    });
+  } else {
+    macdChart.data.datasets[0].data = recent; macdChart.data.datasets[0].backgroundColor = colors; macdChart.update('none');
+  }
+}
+
+// データ取得ロジック（CoinGecko / bitFlyer / Coincheck 等）
+async function fetchExternalJson(url, retries = 1) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (e) {
+      if (attempt < retries) { await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); continue; }
+      throw e;
+    } finally { clearTimeout(timeout); }
+  }
+}
+
+async function fetchAlternativePrice() {
+  try {
+    const cc = await fetchExternalJson('https://coincheck.com/api/ticker?pair=btc_jpy', 1);
+    if (cc && cc.last) {
+      activePriceSource = 'Coincheck';
+      return { jpy: Number(cc.last), jpy_24h_change: 0, jpy_24h_vol: Number(cc.volume || 0) * Number(cc.last), jpy_24h_high: Number(cc.high || cc.last), jpy_24h_low: Number(cc.low || cc.last) };
+    }
+  } catch (e) { console.warn('Coincheck fallback failed:', e); }
+  try {
+    const bf = await fetchExternalJson('https://api.bitflyer.com/v1/ticker?product_code=BTC_JPY', 1);
+    if (bf && bf.ltp) {
+      activePriceSource = 'bitFlyer';
+      return { jpy: Number(bf.ltp), jpy_24h_change: 0, jpy_24h_vol: Number(bf.volume_by_product || bf.volume || 0) * Number(bf.ltp), jpy_24h_high: Number(bf.ltp), jpy_24h_low: Number(bf.ltp) };
+    }
+  } catch (e) { console.warn('bitFlyer fallback failed:', e); }
+  return null;
+}
+
+async function fetchWithFallback(path, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const res = await fetch(API_BASE + path, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        if (attempt < retries) { await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); continue; }
+        throw new Error('タイムアウト');
+      }
+      if (e.message && e.message.includes('429') && attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 700 * (attempt + 1)));
+        continue;
+      }
+      throw e;
+    } finally { clearTimeout(timeout); }
+  }
+}
+
+function applyPriceData(btc, source = 'live') {
+  currentPrice = btc.jpy;
+  document.getElementById('price').textContent = fmt(btc.jpy);
+
+  const chg = btc.jpy_24h_change || 0;
+  const chgEl = document.getElementById('change');
+  chgEl.textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%  24h';
+  chgEl.className = 'metric-sub ' + (chg >= 0 ? 'up' : 'down');
+
+  document.getElementById('high').textContent = fmt(btc.jpy_24h_high);
+  document.getElementById('low').textContent = fmt(btc.jpy_24h_low);
+
+  const vol = btc.jpy_24h_vol || 0;
+  document.getElementById('volume').textContent = vol && btc.jpy ? (vol / btc.jpy).toFixed(1) : '--';
+  volumeHistory = [...volumeHistory.slice(-19), vol || 0];
+
+  const now = new Date();
+  const suffix = source === 'cached' ? ' キャッシュ' : source === 'fallback' ? ' 参考値' : ' ' + (activePriceSource || '更新');
+  document.getElementById('last-updated').textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0') + suffix;
+
+  usingFallbackPrice = source === 'fallback';
+  usingCachedPrice = source === 'cached';
+  updateDataBanner();
+  updateSafetyPanel();
+  checkAlerts(currentPrice);
+}
+
+async function fetchPrice() {
+  if(activePriceSource === 'bitFlyer WS') return;
+
+  try {
+    const data = await fetchWithFallback('/coins/markets?vs_currency=jpy&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h');
+    const market = Array.isArray(data) ? data[0] : null;
+    const btc = market ? {
+      jpy: market.current_price, jpy_24h_change: market.price_change_percentage_24h || 0,
+      jpy_24h_vol: market.total_volume || 0, jpy_24h_high: market.high_24h, jpy_24h_low: market.low_24h
+    } : null;
+    if (!btc) throw new Error('no data');
+
+    activePriceSource = 'CoinGecko';
+    writeCache(PRICE_CACHE_KEY, { btc });
+    applyPriceData(btc, 'live');
+  } catch (e) {
+    console.error('CoinGecko fetchPrice error:', e);
+    const alt = await fetchAlternativePrice();
+    if (alt) { writeCache(PRICE_CACHE_KEY, { btc: alt }); applyPriceData(alt, 'live'); return; }
+    const cached = readCache(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE);
+    if (cached && cached.btc) { activePriceSource = 'キャッシュ'; applyPriceData(cached.btc, 'cached'); return; }
+    activePriceSource = '参考値'; applyPriceData(FALLBACK_PRICE, 'fallback');
+  }
+}
+
+async function fetchHistory() {
+  const tfMap = { '1m': 1, '5m': 1, '1h': 2, '1d': 30 };
+  const days = tfMap[currentTF];
+  try {
+    const data = await fetchWithFallback(`/coins/bitcoin/market_chart?vs_currency=jpy&days=${days}&precision=0`);
+    const prices = data.prices;
+    if (!prices || !prices.length) throw new Error('no prices');
+
+    const stepMap = { '1m': 2, '5m': 10, '1h': 20, '1d': 24 };
+    const step = stepMap[currentTF];
+    const sampled = prices.filter((_, i) => i % step === 0).slice(-100);
+
+    priceHistory = sampled.map(p => p[1]);
+    const labels = sampled.map(p => {
+      const dt = new Date(p[0]);
+      if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
+      return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+    });
+    candleLabels = labels;
+
+    writeCache(HISTORY_CACHE_KEY + '_' + currentTF, { priceHistory, labels });
+    renderPriceChart(labels); renderCandlestickChart(); renderMacdChart();
+    usingFallbackHistory = false; usingCachedHistory = false;
+    updateDataBanner(); updateIndicators(); updateSafetyPanel();
+  } catch (e) {
+    console.error('fetchHistory error:', e);
+    if (currentPrice) {
+      const previous = Array.isArray(priceHistory) && priceHistory.length ? priceHistory.slice(-95) : buildFallbackHistory(currentPrice).slice(-95);
+      priceHistory = [...previous, currentPrice];
+      const labels = priceHistory.map((_, i) => {
+        const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * 300000);
+        return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+      });
+      candleLabels = labels;
+      renderPriceChart(labels); renderCandlestickChart(); renderMacdChart();
+      usingFallbackHistory = true; usingCachedHistory = false;
+      updateDataBanner(); updateIndicators(); updateSafetyPanel();
+      return;
+    }
+    const cached = readCache(HISTORY_CACHE_KEY + '_' + currentTF, HISTORY_CACHE_MAX_AGE);
+    if (cached && Array.isArray(cached.priceHistory) && cached.priceHistory.length && Array.isArray(cached.labels)) {
+      priceHistory = cached.priceHistory; candleLabels = cached.labels;
+      renderPriceChart(cached.labels); renderCandlestickChart(); renderMacdChart();
+      usingFallbackHistory = false; usingCachedHistory = true;
+      updateDataBanner(); updateIndicators(); updateSafetyPanel();
+      return;
+    }
+    priceHistory = buildFallbackHistory(currentPrice || FALLBACK_PRICE.jpy);
+    const labels = priceHistory.map((_, i) => {
+      const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * 300000);
+      return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+    });
+    candleLabels = labels;
+    renderPriceChart(labels); renderCandlestickChart(); renderMacdChart();
+    usingFallbackHistory = true; usingCachedHistory = false;
+    updateDataBanner(); updateIndicators(); updateSafetyPanel();
+  }
+}
+
+function initWebSocket() {
+  if (ws) { ws.onclose = null; ws.close(); }
+  const wsBadge = document.getElementById('ws-status');
+  ws = new WebSocket('wss://ws.lightstream.bitflyer.com/json-rpc');
+  
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ method: "subscribe", params: { channel: "lightning_ticker_BTC_JPY" } }));
+    if (wsBadge) wsBadge.classList.add('ws-active');
+  };
+
+  ws.onmessage = (msg) => {
+    try {
+      const data = JSON.parse(msg.data);
+      if (data.method === "channelMessage" && data.params.message) {
+        const ticker = data.params.message;
+        const price = ticker.ltp;
+        
+        activePriceSource = 'bitFlyer WS';
+        usingFallbackPrice = false;
+        usingCachedPrice = false;
+        currentPrice = price;
+        document.getElementById('price').textContent = fmt(price);
+        
+        if(priceHistory.length > 0) {
+          priceHistory[priceHistory.length - 1] = price;
+        }
+
+        const priceEl = document.getElementById('metric-price');
+        priceEl.classList.remove('flash-up', 'flash-down');
+        void priceEl.offsetWidth;
+        
+        checkAlerts(price);
+        
+        if (!throttleTimer) {
+          throttleTimer = setTimeout(() => {
+            updateSafetyPanel();
+            updateIndicators();
+            renderPriceChart();
+            renderCandlestickChart();
+            renderMacdChart();
+            throttleTimer = null;
+          }, 1000);
+        }
+      }
+    } catch (e) { console.error('WS parse error', e); }
+  };
+
+  ws.onclose = () => {
+    if (wsBadge) wsBadge.classList.remove('ws-active');
+    activePriceSource = 'CoinGecko';
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = setTimeout(initWebSocket, 5000);
+  };
+  
+  ws.onerror = () => { if (wsBadge) wsBadge.classList.remove('ws-active'); };
+}
+
+// ジャーナル・アラート等UI機能
 function logCurrentTrade(triggerType) {
-  if (!latestStats.price) return showToast('データがまだありません');
+  if (!latestStats.price) {
+    showToast('データがまだありません'); return;
+  }
   const record = {
     id: Date.now(), type: triggerType, date: new Date().toLocaleString(),
     price: latestStats.price, score: latestStats.score, dir: latestStats.dir, 
@@ -321,85 +1614,99 @@ function renderJournal() {
     <div class="journal-item ${j.dir}">
       <div class="journal-top"><span>${j.date}</span><span>${j.type}</span></div>
       <div class="journal-data">
-        <span>${j.dir.toUpperCase()}</span><span>${fmt(j.price)}</span>
+        <span>${j.dir === 'long' ? 'LONG' : j.dir === 'short' ? 'SHORT' : 'NEUTRAL'}</span><span>${fmt(j.price)}</span>
         <span>${j.score}点</span><span>Z: ${j.zScore}</span><span>RSI: ${j.rsi}</span>
       </div>
     </div>
   `).join('');
 }
 
-// WebSocket等その他の初期化・描画（簡略化して結合）
-function initWebSocket() {
-  ws = new WebSocket('wss://ws.lightstream.bitflyer.com/json-rpc');
-  ws.onopen = () => { ws.send(JSON.stringify({method:"subscribe",params:{channel:"lightning_ticker_BTC_JPY"}})); document.getElementById('ws-status').classList.add('ws-active'); };
-  ws.onmessage = (msg) => {
-    try {
-      const data = JSON.parse(msg.data);
-      if (data.params && data.params.message) {
-        currentPrice = data.params.message.ltp;
-        document.getElementById('price').textContent = fmt(currentPrice);
-        if(priceHistory.length > 0) priceHistory[priceHistory.length - 1] = currentPrice;
-        checkAlerts(currentPrice);
-      }
-    } catch (e) {}
-  };
+async function sendDiscordWebhook(message) {
+  const url = document.getElementById('webhook-url').value;
+  if (!url) return;
+  try {
+    await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: "BTC/JPY アラート", content: message })
+    });
+  } catch (e) { console.error('Discord Webhook Error', e); }
 }
 
-function renderPriceChart() {
-  const showRR = document.getElementById('toggle-rr-lines')?.checked;
-  const ctx = document.getElementById('priceChart').getContext('2d');
-  const labels = priceHistory.map((_, i) => i);
-  const entryData = (showRR && currentRR.show) ? priceHistory.map(() => currentRR.entry) : [];
-  const stopData = (showRR && currentRR.show) ? priceHistory.map(() => currentRR.stop) : [];
-  const targetData = (showRR && currentRR.show) ? priceHistory.map(() => currentRR.target) : [];
-
-  if (!priceChart) {
-    priceChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [
-      { label: 'BTC', data: priceHistory, borderColor: '#378add', borderWidth: 2, pointRadius: 0 },
-      { label: 'Entry', data: entryData, borderColor: '#d6a800', borderWidth: 1.5, pointRadius: 0, borderDash: [5,5], hidden: !showRR },
-      { label: 'Stop', data: stopData, borderColor: '#e24b4a', borderWidth: 1.5, pointRadius: 0, borderDash: [5,5], hidden: !showRR },
-      { label: 'Target', data: targetData, borderColor: '#1d9e75', borderWidth: 1.5, pointRadius: 0, borderDash: [5,5], hidden: !showRR }
-    ]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, animation: { duration: 0 } }});
-  } else {
-    priceChart.data.datasets[0].data = priceHistory;
-    priceChart.data.datasets[1].data = entryData; priceChart.data.datasets[1].hidden = !showRR;
-    priceChart.data.datasets[2].data = stopData; priceChart.data.datasets[2].hidden = !showRR;
-    priceChart.data.datasets[3].data = targetData; priceChart.data.datasets[3].hidden = !showRR;
-    priceChart.update();
-  }
+function setTF(tf) {
+  currentTF = tf;
+  ['1m', '5m', '1h', '1d'].forEach(t => { document.getElementById('tf-' + t).classList.toggle('active', t === tf); });
+  priceHistory = [];
+  fetchHistory();
 }
 
-// Basic utility wiring
-function setTF(tf) { currentTF = tf; fetchHistory(); }
-function saveWebhook() { localStorage.setItem('btc_webhook_url', document.getElementById('webhook-url').value); }
-function saveRRToggle() { localStorage.setItem('btc_show_rr_lines', document.getElementById('toggle-rr-lines').checked); }
-function showToast(msg) { const el = document.getElementById('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none', 3000); }
-async function fetchHistory() {
-  // Mocking fetch for snippet brevity. Original fetch code is preserved in your actual execution.
-  priceHistory = Array.from({length: 100}, (_, i) => 10000000 + Math.sin(i/5)*50000 + i*1000);
-  updateSafetyPanel();
-}
-function checkAlerts(price) {
-  alerts.forEach(a => {
-    if (!a.triggered && ((a.dir === 'above' && price >= a.price) || (a.dir === 'below' && price <= a.price))) {
-      a.triggered = true; showToast(`アラート発動: ${fmt(price)}`);
-      logCurrentTrade(`アラート (${a.dir})`);
-    }
-  });
-}
 function addAlert() {
   const dir = document.getElementById('alert-dir').value;
   const price = parseFloat(document.getElementById('alert-price').value);
-  if(price) { alerts.push({dir, price, id: Date.now(), triggered: false}); localStorage.setItem('btc_alerts', JSON.stringify(alerts)); }
+  if (!price || isNaN(price) || price <= 0) { showToast('価格を正しく入力してください'); return; }
+  alerts.push({ dir, price, id: Date.now(), triggered: false });
+  saveAlerts(); renderAlerts();
+  document.getElementById('alert-price').value = '';
+  showToast('アラート設定: ' + fmt(price) + (dir === 'above' ? ' 上回ったら' : ' 下回ったら'));
 }
 
-// Init
-document.getElementById('webhook-url').value = localStorage.getItem('btc_webhook_url') || '';
-document.getElementById('toggle-rr-lines').checked = localStorage.getItem('btc_show_rr_lines') === 'true';
+function removeAlert(id) { alerts = alerts.filter(a => a.id !== id); saveAlerts(); renderAlerts(); }
+function saveAlerts() { try { localStorage.setItem('btc_alerts', JSON.stringify(alerts)); } catch (e) {} }
+
+function renderAlerts() {
+  const el = document.getElementById('alert-list');
+  if (!alerts.length) { el.innerHTML = '<div class="empty-hint">アラートはまだ設定されていません</div>'; return; }
+  el.innerHTML = alerts.map(a => `
+    <div class="alert-item ${a.triggered ? 'alert-triggered' : ''}">
+      <div class="alert-left">
+        <span class="alert-dir ${a.dir}">${a.dir === 'above' ? '↑ 上回ったら' : '↓ 下回ったら'}</span>
+        <span style="font-weight:500;">${fmt(a.price)}</span>
+        ${a.triggered ? '<span style="font-size:11px;color:var(--text3);">✓ 発動済み</span>' : ''}
+      </div>
+      <button class="alert-del" onclick="removeAlert(${a.id})" title="削除">×</button>
+    </div>
+  `).join('');
+}
+
+function checkAlerts(price) {
+  let triggered = false;
+  alerts.forEach(a => {
+    if (a.triggered) return;
+    if (a.dir === 'above' && price >= a.price) {
+      a.triggered = true; triggered = true;
+      const msg = `🔔 BTC/JPY アラート: ${fmt(a.price)} を上回りました！(現在価格: ${fmt(price)})`;
+      showToast(msg); sendDiscordWebhook(msg); logCurrentTrade(`アラート (${a.dir})`);
+    }
+    if (a.dir === 'below' && price <= a.price) {
+      a.triggered = true; triggered = true;
+      const msg = `🔔 BTC/JPY アラート: ${fmt(a.price)} を下回りました！(現在価格: ${fmt(price)})`;
+      showToast(msg); sendDiscordWebhook(msg); logCurrentTrade(`アラート (${a.dir})`);
+    }
+  });
+  if (triggered) { saveAlerts(); renderAlerts(); }
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = 'block';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.style.display = 'none', 4000);
+}
+
+async function refreshAll() { await fetchPrice(); await fetchHistory(); }
+function startAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(fetchPrice, 60000);
+}
+
+// 初期化実行
+loadTradeMode();
+loadRiskSettings();
+renderAlerts();
 renderJournal();
 initWebSocket();
-fetchHistory();
-setInterval(updateSafetyPanel, 5000);
+refreshAll();
+startAutoRefresh();
 </script>
 </body>
 </html>
