@@ -368,7 +368,7 @@
 
 <div class="card candle-card">
   <div class="card-header">
-    <span class="card-title">ローソク足 <span style="color:var(--text3);font-weight:400;">(Kraken OHLCベース)</span></span>
+    <span class="card-title">ローソク足 <span style="color:var(--text3);font-weight:400;">(CryptoCompare OHLCベース)</span></span>
   </div>
   <div class="candle-summary">
     <div class="candle-stat">
@@ -494,7 +494,7 @@
   </div>
 </div>
 
-<div class="footer">※ Kraken API / Binance WS より取得。投資アドバイスではありません。</div>
+<div class="footer">※ CryptoCompare API / Binance WS より取得。投資アドバイスではありません。</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -505,11 +505,11 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const API_BASE = 'https://api.kraken.com/0/public';
+const API_BASE = 'https://min-api.cryptocompare.com/data';
 
 let priceHistory = [];
 let volumeHistory = [];
-let ohlcHistory = []; // 本物のローソク足データ用
+let ohlcHistory = []; 
 let currentTF = '5m';
 let currentPrice = 0;
 let alerts = JSON.parse(localStorage.getItem('btc_alerts') || '[]');
@@ -522,7 +522,7 @@ let usingFallbackPrice = false;
 let usingFallbackHistory = false;
 let usingCachedPrice = false;
 let usingCachedHistory = false;
-let activePriceSource = 'Kraken API';
+let activePriceSource = 'CCData API';
 
 // WebSocket & Throttle variables
 let ws = null;
@@ -531,8 +531,8 @@ let throttleTimer = null;
 let currentRR = { entry: null, stop: null, target: null, show: false };
 let latestStats = {}; 
 
-const PRICE_CACHE_KEY = 'btc_price_cache_v2';
-const HISTORY_CACHE_KEY = 'btc_history_cache_v2';
+const PRICE_CACHE_KEY = 'btc_price_cache_v3';
+const HISTORY_CACHE_KEY = 'btc_history_cache_v3';
 const TRADE_MODE_KEY = 'btc_trade_mode_v1';
 const WEBHOOK_KEY = 'btc_webhook_url';
 const RR_TOGGLE_KEY = 'btc_show_rr_lines';
@@ -569,8 +569,8 @@ function updateDataBanner() {
   const banner = document.getElementById('error-banner');
   if (!banner) return;
   const messages = [];
-  if (usingCachedPrice) messages.push('価格APIに接続できないため、直近成功データを表示しています。');
-  if (usingCachedHistory) messages.push('履歴APIに接続できないため、直近成功チャートを表示しています。');
+  if (usingCachedPrice) messages.push('価格APIに接続できないため、直近データを表示しています。');
+  if (usingCachedHistory) messages.push('履歴APIに接続できないため、直近チャートを表示しています。');
   if (usingFallbackPrice) messages.push('価格APIに接続できないため、参考値で表示しています。');
   if (usingFallbackHistory) messages.push('履歴APIに接続できないため、参考チャートで表示しています。');
 
@@ -1370,7 +1370,6 @@ function renderCandlestickChart() {
 
   if (!ohlcHistory || ohlcHistory.length < 4) return;
 
-  // 画面幅に応じて表示本数を最適化（スマホ時は潰れないように直近48本）
   const maxCandles = width < 420 ? 48 : 96;
   const displayCandles = ohlcHistory.slice(-maxCandles);
   const displayLabels = candleLabels.slice(-maxCandles);
@@ -1528,28 +1527,22 @@ async function fetchPrice() {
   if(activePriceSource === 'Binance WS') return;
 
   try {
-    const data = await fetchExternalJson('https://api.kraken.com/0/public/Ticker?pair=BTCJPY');
-    if (data.error && data.error.length > 0) throw new Error(data.error[0]);
+    const data = await fetchExternalJson('https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC&tsyms=JPY');
+    if (!data || !data.RAW || !data.RAW.BTC || !data.RAW.BTC.JPY) throw new Error('no data');
     
-    const pairKey = Object.keys(data.result)[0];
-    const ticker = data.result[pairKey];
-    
-    const currentPrice = parseFloat(ticker.c[0]);
-    const openPrice = parseFloat(ticker.o[1]);
-    const changePct = ((currentPrice - openPrice) / openPrice) * 100;
-    
+    const ticker = data.RAW.BTC.JPY;
     const btc = {
-      jpy: currentPrice,
-      jpy_24h_change: changePct,
-      jpy_24h_vol: parseFloat(ticker.v[1]),
-      jpy_24h_high: parseFloat(ticker.h[1]),
-      jpy_24h_low: parseFloat(ticker.l[1])
+      jpy: ticker.PRICE,
+      jpy_24h_change: ticker.CHANGEPCT24HOUR,
+      jpy_24h_vol: ticker.VOLUME24HOUR,
+      jpy_24h_high: ticker.HIGH24HOUR,
+      jpy_24h_low: ticker.LOW24HOUR
     };
-    activePriceSource = 'Kraken API';
+    activePriceSource = 'CCData API';
     writeCache(PRICE_CACHE_KEY, { btc });
     applyPriceData(btc, 'live');
   } catch (e) {
-    console.error('Kraken fetchPrice error:', e);
+    console.error('CCData fetchPrice error:', e);
     const cached = readCache(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE);
     if (cached && cached.btc) { activePriceSource = 'キャッシュ'; applyPriceData(cached.btc, 'cached'); return; }
     activePriceSource = '参考値'; applyPriceData(FALLBACK_PRICE, 'fallback');
@@ -1557,25 +1550,27 @@ async function fetchPrice() {
 }
 
 async function fetchHistory() {
-  const tfMap = { '1m': 1, '5m': 5, '1h': 60, '1d': 1440 };
-  const interval = tfMap[currentTF] || 5;
+  let url = '';
+  let stepMs = 300000;
+  if (currentTF === '1m') { url = 'https://min-api.cryptocompare.com/data/v2/histominute?fsym=BTC&tsym=JPY&limit=100'; stepMs = 60000; }
+  else if (currentTF === '5m') { url = 'https://min-api.cryptocompare.com/data/v2/histominute?fsym=BTC&tsym=JPY&limit=100&aggregate=5'; stepMs = 300000; }
+  else if (currentTF === '1h') { url = 'https://min-api.cryptocompare.com/data/v2/histohour?fsym=BTC&tsym=JPY&limit=100'; stepMs = 3600000; }
+  else if (currentTF === '1d') { url = 'https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=JPY&limit=100'; stepMs = 86400000; }
+
   try {
-    const data = await fetchExternalJson(`https://api.kraken.com/0/public/OHLC?pair=BTCJPY&interval=${interval}`);
-    if (data.error && data.error.length > 0) throw new Error(data.error[0]);
+    const data = await fetchExternalJson(url);
+    if (data.Response !== 'Success') throw new Error('API Error');
 
-    const pairKey = Object.keys(data.result).find(k => k !== 'last');
-    const klines = data.result[pairKey];
+    const klines = data.Data.Data;
 
-    const sampled = klines.slice(-100);
-
-    priceHistory = sampled.map(k => parseFloat(k[4])); 
-    volumeHistory = sampled.map(k => parseFloat(k[6])); 
-    ohlcHistory = sampled.map(k => ({
-      open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4])
+    priceHistory = klines.map(k => parseFloat(k.close));
+    volumeHistory = klines.map(k => parseFloat(k.volumefrom));
+    ohlcHistory = klines.map(k => ({
+      open: parseFloat(k.open), high: parseFloat(k.high), low: parseFloat(k.low), close: parseFloat(k.close)
     }));
 
-    const labels = sampled.map(k => {
-      const dt = new Date(k[0] * 1000);
+    const labels = klines.map(k => {
+      const dt = new Date(k.time * 1000);
       if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
       return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
     });
@@ -1587,11 +1582,6 @@ async function fetchHistory() {
     updateDataBanner(); updateIndicators(); updateSafetyPanel();
   } catch (e) {
     console.error('fetchHistory error:', e);
-    
-    let stepMs = 300000;
-    if (currentTF === '1m') stepMs = 60000;
-    if (currentTF === '1h') stepMs = 3600000;
-    if (currentTF === '1d') stepMs = 86400000;
 
     if (currentPrice) {
       const previousPrice = Array.isArray(priceHistory) && priceHistory.length ? priceHistory.slice(-95) : buildFallbackHistory(currentPrice).slice(-95);
@@ -1710,7 +1700,7 @@ function initWebSocket() {
 
   ws.onclose = () => {
     if (wsBadge) wsBadge.classList.remove('ws-active');
-    activePriceSource = 'Kraken API';
+    activePriceSource = 'CCData API';
     clearTimeout(wsReconnectTimer);
     wsReconnectTimer = setTimeout(initWebSocket, 5000);
   };
@@ -1820,9 +1810,14 @@ function showToast(msg) {
 }
 
 async function refreshAll() { await fetchPrice(); await fetchHistory(); }
+
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(fetchPrice, 60000);
+  // 60秒ごとに履歴（ローソク足）も再取得し、新しい足を追加する
+  refreshTimer = setInterval(() => {
+    fetchPrice();
+    fetchHistory(); 
+  }, 60000);
 }
 
 // init
