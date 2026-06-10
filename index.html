@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#ffffff">
 <link rel="apple-touch-icon" href="icon-192.png">
 
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   .depth-container { display: flex; height: 160px; gap: 4px; padding: 10px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 12px; }
@@ -46,7 +47,7 @@
   .live-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .live-badge.ws-active .live-dot { animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
-  .btn { font-size: 12px; padding: 5px 12px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text2); cursor: pointer; transition: background 0.15s; }
+  .btn { font-size: 12px; padding: 5px 12px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text2); cursor: pointer; transition: background 0.15s; font-weight: 500; }
   .btn:hover { background: var(--bg2); }
   .btn:active { transform: scale(0.97); }
   .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
@@ -92,10 +93,8 @@
   .alert-form select { min-width: 130px; }
   .alert-form input[type=number] { flex: 1; min-width: 140px; }
   .alert-form input::placeholder { color: var(--text3); }
-  
-  /* LINE入力欄用のスタイル */
-  .line-fields { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-  .line-fields input { width: 100%; font-size: 12px; padding: 8px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; }
+  .webhook-field { width: 100%; margin-bottom: 12px; display: flex; }
+  .webhook-field input { width: 100%; font-size: 12px; }
 
   .alert-list { display: flex; flex-direction: column; gap: 6px; }
   .alert-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); border-radius: var(--radius); padding: 8px 12px; font-size: 13px; }
@@ -472,12 +471,8 @@
 </div>
 
 <div class="card">
-  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">🔔 価格アラート & LINE通知設定</span></div>
-  <div class="line-fields">
-    <input type="text" id="line-token" placeholder="LINE Channel Access Token (とても長い文字列)" onchange="saveLineSettings()" />
-    <input type="text" id="line-userid" placeholder="LINE User ID (Uから始まる文字列)" onchange="saveLineSettings()" />
-  </div>
-  <div class="risk-note" style="margin-top: 0; margin-bottom: 12px;">※入力すると指定価格到達時にLINEへ自動でメッセージが届きます。</div>
+  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">🔔 価格アラート (サーバー24時間監視)</span></div>
+  <div class="risk-note" style="margin-top: 0; margin-bottom: 12px; font-weight: bold; color: var(--blue);" id="line-status">LINE情報取得中...</div>
   
   <div class="alert-form">
     <select id="alert-dir">
@@ -485,7 +480,7 @@
       <option value="below">↓ 下回ったら</option>
     </select>
     <input type="number" id="alert-price" placeholder="価格 (例: 15000000)" step="10000" min="0" />
-    <button class="btn" onclick="addAlert()" style="white-space:nowrap;">＋ 追加</button>
+    <button class="btn" onclick="addServerAlert()" style="white-space:nowrap; background: var(--blue); color: #fff; font-weight: bold;" id="btn-add-alert">＋ 追加</button>
   </div>
   <div class="alert-list" id="alert-list">
     <div class="empty-hint">アラートはまだ設定されていません</div>
@@ -509,8 +504,15 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// 🔴 ここに先ほど作成した「LIFF ID」を貼り付けてください！
+const LIFF_ID = '2010358576-YfJ4msXp';
+
+// あなたが作ったGoogle Apps ScriptのURL
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx1eWn7CPcr8qQSHe9ScfBX-Mn8uuNbr1e7hPxpEKZOdYtVFVrHh0XOhKO1ucCFYZOw/exec';
+
 const API_BASE = 'https://api.binance.com/api/v3';
 
+let liffUserId = null;
 let priceHistory = [];
 let volumeHistory = [];
 let ohlcHistory = []; 
@@ -541,14 +543,66 @@ const HISTORY_CACHE_KEY = 'btc_history_cache_v2';
 const TRADE_MODE_KEY = 'btc_trade_mode_v1';
 const RR_TOGGLE_KEY = 'btc_show_rr_lines';
 const PRED_TOGGLE_KEY = 'btc_show_pred_band';
-const LINE_TOKEN_KEY = 'btc_line_token';
-const LINE_USERID_KEY = 'btc_line_userid';
 const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
 const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 
-const FALLBACK_PRICE = { jpy: 10450000, jpy_24h_change: 0.42, jpy_24h_vol: 564321.1, jpy_24h_high: 10580000, jpy_24h_low: 10280000 };
+// ✅ LINE LIFFの初期化処理
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      liffUserId = profile.userId;
+      document.getElementById('line-status').textContent = '✅ LINE連携完了 (' + profile.displayName + ')';
+      document.getElementById('line-status').style.color = 'var(--green)';
+    } else {
+      document.getElementById('line-status').innerHTML = '<button class="btn" style="background:var(--green);color:#fff;" onclick="liff.login()">LINEでログインして通知を有効化</button>';
+      document.getElementById('line-status').style.color = 'var(--text2)';
+    }
+  } catch(e) {
+    console.error('LIFF Init Error', e);
+    document.getElementById('line-status').textContent = '⚠️ LINE連携エラー (LIFF IDの設定を確認してください)';
+    document.getElementById('line-status').style.color = 'var(--red)';
+  }
+}
 
-function buildFallbackHistory(basePrice = FALLBACK_PRICE.jpy) {
+// ✅ サーバー(GAS)へアラート設定を送信する処理
+async function addServerAlert() {
+  if (!liffUserId) {
+    showToast('LINE連携が完了していません。LINEから開くかログインしてください。');
+    return;
+  }
+  const dir = document.getElementById('alert-dir').value;
+  const price = parseFloat(document.getElementById('alert-price').value);
+  if (!price || isNaN(price) || price <= 0) { showToast('価格を正しく入力してください'); return; }
+
+  const btn = document.getElementById('btn-add-alert');
+  btn.textContent = '送信中...';
+  btn.disabled = true;
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ userId: liffUserId, dir: dir, price: price }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' } // CORS回避のための特殊設定
+    });
+
+    // ローカルUIの表示も更新
+    alerts.push({ dir, price, id: Date.now(), triggered: false });
+    saveAlerts();
+    renderAlerts();
+    document.getElementById('alert-price').value = '';
+    showToast('✅ サーバーにアラートを登録しました！(ブラウザを閉じても監視されます)');
+  } catch (e) {
+    showToast('❌ 登録に失敗しました。');
+    console.error(e);
+  } finally {
+    btn.textContent = '＋ 追加';
+    btn.disabled = false;
+  }
+}
+
+function buildFallbackHistory(basePrice = 10450000) {
   const raw = Array.from({ length: 96 }, (_, i) => {
     const trend = (i - 47) * 160;
     const wave = Math.sin(i / 8) * 12000 + Math.cos(i / 18) * 5000;
@@ -598,8 +652,6 @@ function loadRiskSettings() {
     if (saved.riskPct) document.getElementById('risk-percent').value = saved.riskPct;
     document.getElementById('toggle-rr-lines').checked = (localStorage.getItem(RR_TOGGLE_KEY) === 'true');
     document.getElementById('toggle-pred-band').checked = (localStorage.getItem(PRED_TOGGLE_KEY) === 'true');
-    document.getElementById('line-token').value = localStorage.getItem(LINE_TOKEN_KEY) || '';
-    document.getElementById('line-userid').value = localStorage.getItem(LINE_USERID_KEY) || '';
   } catch (e) {}
 }
 
@@ -609,11 +661,6 @@ function saveRiskSettings() {
   try {
     localStorage.setItem('btc_risk_settings', JSON.stringify({ balance: Math.max(0, Math.round(balance)), riskPct: clamp(riskPct, 0.1, 5) }));
   } catch (e) {}
-}
-
-function saveLineSettings() {
-  localStorage.setItem(LINE_TOKEN_KEY, document.getElementById('line-token').value);
-  localStorage.setItem(LINE_USERID_KEY, document.getElementById('line-userid').value);
 }
 
 function saveRRToggle() { localStorage.setItem(RR_TOGGLE_KEY, document.getElementById('toggle-rr-lines').checked); }
@@ -1499,15 +1546,12 @@ function renderMacdChart() {
   }
 }
 
-// ⚠️ CORS回避用のプロキシ経由fetch関数
 async function fetchExternalJson(url, retries = 1) {
-  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-  
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const res = await fetch(proxyUrl, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+      const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (e) {
@@ -1775,45 +1819,11 @@ function renderJournal() {
   `).join('');
 }
 
-// ⚠️ LINE Messaging API経由でプッシュ通知を送る処理
-async function sendLineWebhook(message) {
-  const token = document.getElementById('line-token').value;
-  const userId = document.getElementById('line-userid').value;
-  if (!token || !userId) return;
-
-  const url = 'https://api.line.me/v2/bot/message/push';
-  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-
-  try {
-    await fetch(proxyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        to: userId,
-        messages: [{ type: 'text', text: message }]
-      })
-    });
-  } catch (e) { console.error('LINE Webhook Error', e); }
-}
-
 function setTF(tf) {
   currentTF = tf;
   ['1m', '5m', '1h', '1d'].forEach(t => { document.getElementById('tf-' + t).classList.toggle('active', t === tf); });
   priceHistory = [];
   fetchHistory();
-}
-
-function addAlert() {
-  const dir = document.getElementById('alert-dir').value;
-  const price = parseFloat(document.getElementById('alert-price').value);
-  if (!price || isNaN(price) || price <= 0) { showToast('価格を正しく入力してください'); return; }
-  alerts.push({ dir, price, id: Date.now(), triggered: false });
-  saveAlerts(); renderAlerts();
-  document.getElementById('alert-price').value = '';
-  showToast('アラート設定: ' + fmt(price) + (dir === 'above' ? ' 上回ったら' : ' 下回ったら'));
 }
 
 function removeAlert(id) { alerts = alerts.filter(a => a.id !== id); saveAlerts(); renderAlerts(); }
@@ -1834,19 +1844,20 @@ function renderAlerts() {
   `).join('');
 }
 
+// 画面表示用のローカルチェック（LINE送信はサーバー側が行います）
 function checkAlerts(price) {
   let triggered = false;
   alerts.forEach(a => {
     if (a.triggered) return;
     if (a.dir === 'above' && price >= a.price) {
       a.triggered = true; triggered = true;
-      const msg = `🔔 BTC/JPY アラート: ${fmt(a.price)} を上回りました！(現在価格: ${fmt(price)})`;
-      showToast(msg); sendLineWebhook(msg); logCurrentTrade(`アラート (${a.dir})`);
+      const msg = `🔔 BTC/JPY アラート到達: ${fmt(price)}`;
+      showToast(msg); logCurrentTrade(`アラート (${a.dir})`);
     }
     if (a.dir === 'below' && price <= a.price) {
       a.triggered = true; triggered = true;
-      const msg = `🔔 BTC/JPY アラート: ${fmt(a.price)} を下回りました！(現在価格: ${fmt(price)})`;
-      showToast(msg); sendLineWebhook(msg); logCurrentTrade(`アラート (${a.dir})`);
+      const msg = `🔔 BTC/JPY アラート到達: ${fmt(price)}`;
+      showToast(msg); logCurrentTrade(`アラート (${a.dir})`);
     }
   });
   if (triggered) { saveAlerts(); renderAlerts(); }
@@ -1871,13 +1882,16 @@ function startAutoRefresh() {
 }
 
 // init
-loadRiskSettings();
-loadTradeMode();
-renderAlerts();
-renderJournal();
-initWebSocket();
-refreshAll();
-startAutoRefresh();
+window.addEventListener('load', () => {
+  initLiff();
+  loadRiskSettings();
+  loadTradeMode();
+  renderAlerts();
+  renderJournal();
+  initWebSocket();
+  refreshAll();
+  startAutoRefresh();
+});
 </script>
 </body>
 </html>
