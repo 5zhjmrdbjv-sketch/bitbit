@@ -221,11 +221,11 @@
     </div>
   </div>
   <div class="header-right">
-  <a href="guide.html" class="btn" style="text-decoration:none; margin-right:4px;">？ 使い方</a>
-  <span class="last-updated" id="last-updated">--</span>
-  <div class="live-badge" id="ws-status"><div class="live-dot"></div>WS接続中</div>
-  <button class="btn" onclick="refreshAll()">↻ 更新</button>
-</div>
+    <a href="guide.html" class="btn" style="text-decoration:none; margin-right:4px;">？ 使い方</a>
+    <span class="last-updated" id="last-updated">--</span>
+    <div class="live-badge" id="ws-status"><div class="live-dot"></div>WS接続中</div>
+    <button class="btn" onclick="refreshAll()">↻ 更新</button>
+  </div>
 </div>
 
 <div class="error-banner" id="error-banner">
@@ -504,7 +504,7 @@
   </div>
 </div>
 
-<div class="footer">※ CoinGecko / bitFlyer WS より取得。投資アドバイスではありません。</div>
+<div class="footer">※ Binance API / WS より取得。投資アドバイスではありません。</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -515,7 +515,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const API_BASE = 'https://api.coingecko.com/api/v3';
+const API_BASE = 'https://api.binance.com/api/v3';
 
 let priceHistory = [];
 let volumeHistory = [];
@@ -531,7 +531,7 @@ let usingFallbackPrice = false;
 let usingFallbackHistory = false;
 let usingCachedPrice = false;
 let usingCachedHistory = false;
-let activePriceSource = 'CoinGecko';
+let activePriceSource = 'Binance API';
 
 // WebSocket & Throttle variables
 let ws = null;
@@ -578,7 +578,6 @@ function updateDataBanner() {
   const banner = document.getElementById('error-banner');
   if (!banner) return;
   const messages = [];
-  if (activePriceSource && activePriceSource !== 'CoinGecko' && activePriceSource !== 'bitFlyer WS' && !usingCachedPrice && !usingFallbackPrice) messages.push('公開APIで価格を補完しています。');
   if (usingCachedPrice) messages.push('価格APIに接続できないため、直近成功データを表示しています。');
   if (usingCachedHistory) messages.push('履歴APIに接続できないため、直近成功チャートを表示しています。');
   if (usingFallbackPrice) messages.push('価格APIに接続できないため、参考値で表示しています。');
@@ -780,7 +779,6 @@ function applyTradeModeDisplay() {
   }
 }
 
-// 指標計算群
 function calcMA(arr, n) { if (arr.length < n) return null; return arr.slice(-n).reduce((a, b) => a + b, 0) / n; }
 function calcRSI(arr, n = 14) {
   if (arr.length < n + 1) return 50;
@@ -842,9 +840,6 @@ function calcZScore(arr, n = 20) {
   return std === 0 ? 0 : (arr[arr.length - 1] - mean) / std;
 }
 
-// ==========================================
-// 新規追加：バックテスト実行関数
-// ==========================================
 function runBacktest() {
   const btn = document.getElementById('btn-backtest');
   btn.textContent = '計算中...';
@@ -862,7 +857,6 @@ function runBacktest() {
     
     let trades = 0, wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
     
-    // スコア計算に必要な最低本数（25本目）から最新までループ
     for (let i = 25; i < priceHistory.length - 1; i++) {
       const ph = priceHistory.slice(0, i + 1);
       const vh = volumeHistory.slice(0, i + 1);
@@ -895,7 +889,7 @@ function runBacktest() {
       const direction = trendScore >= 2 ? 'long' : trendScore <= -2 ? 'short' : 'neutral';
       
       if (direction === 'neutral') continue;
-      if (mode === 'spot' && direction === 'short') continue; // 現物モードではショート見送り
+      if (mode === 'spot' && direction === 'short') continue; 
 
       const riskDistance = Math.max(atr * 1.5, current * 0.004);
       const stop = direction === 'short' ? current + riskDistance : current - riskDistance;
@@ -908,7 +902,6 @@ function runBacktest() {
       const rewardDistance = Math.abs(target - current);
       const rr = rewardDistance / Math.max(1, riskDistance);
       
-      // バックテスト用スコアリング（現在UIと同じロジック）
       const scoreParts = [
         { points: ma5 && ma25 ? (ma5 > ma25 ? 20 : -20) : 0 },
         { points: macdVal > 0 ? 15 : -15 },
@@ -921,7 +914,6 @@ function runBacktest() {
       ];
       let entryScore = Math.round(clamp(50 + scoreParts.reduce((sum, part) => sum + part.points, 0), 0, 100));
       
-      // スコア75点以上で仮想エントリー
       if (entryScore >= 75) {
         let outcome = null;
         for (let j = i + 1; j < priceHistory.length; j++) {
@@ -938,7 +930,7 @@ function runBacktest() {
         if (outcome) {
           trades++;
           const riskYen = balance * riskPct / 100;
-          const rawSize = riskYen / Math.max(1, riskDistance); // 数量計算
+          const rawSize = riskYen / Math.max(1, riskDistance);
           
           if (outcome === 'win') {
             wins++;
@@ -947,13 +939,11 @@ function runBacktest() {
             losses++;
             grossLoss += (riskDistance * rawSize);
           }
-          // トレードが決済されたら次の足まで少しスキップ（連続エントリー防止）
           i += 2; 
         }
       }
     }
     
-    // UIへ結果を反映
     const winRate = trades > 0 ? ((wins / trades) * 100).toFixed(1) : '0.0';
     const pf = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
     const netProfit = grossProfit - grossLoss;
@@ -970,9 +960,8 @@ function runBacktest() {
     setTimeout(() => { btn.textContent = '再実行'; }, 2000);
     showToast(`バックテスト完了（${trades}回の仮想トレード）`);
     
-  }, 50); // UIブロック回避のための微小な遅延
+  }, 50);
 }
-
 
 function updateSafetyPanel() {
   const status = document.getElementById('safety-status');
@@ -1014,7 +1003,7 @@ function updateSafetyPanel() {
   const mom = calcMomentum(priceHistory, 10);
   const volatility = calcVolatility(priceHistory, 14);
   const zScore = calcZScore(priceHistory, 20);
-  const volZScore = volumeHistory.length >= 14 ? calcZScore(volumeHistory, 14) : 0; // 出来高のZ検定
+  const volZScore = volumeHistory.length >= 14 ? calcZScore(volumeHistory, 14) : 0;
   
   const support = bb ? bb.lower : current * 0.98;
   const resistance = bb ? bb.upper : current * 1.02;
@@ -1067,7 +1056,6 @@ function updateSafetyPanel() {
   
   const grade = getEntryGrade(entryScore);
   
-  // Update latestStats for Journaling
   latestStats = { price: current, score: entryScore, dir: direction, rsi, zScore, volZScore };
 
   status.className = grade.className;
@@ -1091,7 +1079,7 @@ function updateSafetyPanel() {
   setTradeText('plan-target', direction === 'neutral' ? '--' : fmt(target));
   setTradeText('plan-size', direction === 'neutral' ? '--' : size.toFixed(5) + ' BTC');
 
-  const dataState = activePriceSource === 'bitFlyer WS' ? 'WSリアルタイム' : usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム';
+  const dataState = activePriceSource === 'Binance WS' ? 'WSリアルタイム' : usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム';
   
   setTradeText('entry-rationale-body', generateEntryRationale({
     grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25, volZScore,
@@ -1176,7 +1164,6 @@ function updateIndicators() {
   else if (zScore <= -2) { trendSig.className = 'signal signal-buy'; trendSig.textContent = '価格Zスコア売られすぎ (反発警戒)'; }
   else { trendSig.className = 'signal signal-neutral'; trendSig.textContent = '統計的正常範囲'; }
 
-  // 出来高有意性検定と予測帯
   const volZScore = volumeHistory.length >= 14 ? calcZScore(volumeHistory, 14) : 0;
   const stdDev = calcStdDev(priceHistory, 20);
   const predHigh = current + (stdDev * 2);
@@ -1501,39 +1488,6 @@ function renderMacdChart() {
   }
 }
 
-async function fetchExternalJson(url, retries = 1) {
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (e) {
-      if (attempt < retries) { await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); continue; }
-      throw e;
-    } finally { clearTimeout(timeout); }
-  }
-}
-
-async function fetchAlternativePrice() {
-  try {
-    const cc = await fetchExternalJson('https://coincheck.com/api/ticker?pair=btc_jpy', 1);
-    if (cc && cc.last) {
-      activePriceSource = 'Coincheck';
-      return { jpy: Number(cc.last), jpy_24h_change: 0, jpy_24h_vol: Number(cc.volume || 0) * Number(cc.last), jpy_24h_high: Number(cc.high || cc.last), jpy_24h_low: Number(cc.low || cc.last) };
-    }
-  } catch (e) { console.warn('Coincheck fallback failed:', e); }
-  try {
-    const bf = await fetchExternalJson('https://api.bitflyer.com/v1/ticker?product_code=BTC_JPY', 1);
-    if (bf && bf.ltp) {
-      activePriceSource = 'bitFlyer';
-      return { jpy: Number(bf.ltp), jpy_24h_change: 0, jpy_24h_vol: Number(bf.volume_by_product || bf.volume || 0) * Number(bf.ltp), jpy_24h_high: Number(bf.ltp), jpy_24h_low: Number(bf.ltp) };
-    }
-  } catch (e) { console.warn('bitFlyer fallback failed:', e); }
-  return null;
-}
-
 async function fetchWithFallback(path, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     const controller = new AbortController();
@@ -1570,8 +1524,7 @@ function applyPriceData(btc, source = 'live') {
 
   const vol = btc.jpy_24h_vol || 0;
   document.getElementById('volume').textContent = vol && btc.jpy ? (vol / btc.jpy).toFixed(1) : '--';
-  if (volumeHistory.length > 0) volumeHistory[volumeHistory.length - 1] = vol; // リアルタイム反映用
-
+  
   const now = new Date();
   const suffix = source === 'cached' ? ' キャッシュ' : source === 'fallback' ? ' 参考値' : ' ' + (activePriceSource || '更新');
   document.getElementById('last-updated').textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0') + suffix;
@@ -1584,18 +1537,23 @@ function applyPriceData(btc, source = 'live') {
 }
 
 async function fetchPrice() {
-  if(activePriceSource === 'bitFlyer WS') return;
+  if(activePriceSource === 'Binance WS') return;
 
   try {
-    const data = await fetchWithFallback('/coins/markets?vs_currency=jpy&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h');
-    const market = Array.isArray(data) ? data[0] : null;
-    const btc = market ? { jpy: market.current_price, jpy_24h_change: market.price_change_percentage_24h || 0, jpy_24h_vol: market.total_volume || 0, jpy_24h_high: market.high_24h, jpy_24h_low: market.low_24h } : null;
-    if (!btc) throw new Error('no data');
-    activePriceSource = 'CoinGecko'; writeCache(PRICE_CACHE_KEY, { btc }); applyPriceData(btc, 'live');
+    const data = await fetchWithFallback('/ticker/24hr?symbol=BTCJPY');
+    if (!data || !data.lastPrice) throw new Error('no data');
+    const btc = {
+      jpy: parseFloat(data.lastPrice),
+      jpy_24h_change: parseFloat(data.priceChangePercent),
+      jpy_24h_vol: parseFloat(data.quoteVolume),
+      jpy_24h_high: parseFloat(data.highPrice),
+      jpy_24h_low: parseFloat(data.lowPrice)
+    };
+    activePriceSource = 'Binance API';
+    writeCache(PRICE_CACHE_KEY, { btc });
+    applyPriceData(btc, 'live');
   } catch (e) {
-    console.error('CoinGecko fetchPrice error:', e);
-    const alt = await fetchAlternativePrice();
-    if (alt) { writeCache(PRICE_CACHE_KEY, { btc: alt }); applyPriceData(alt, 'live'); return; }
+    console.error('Binance fetchPrice error:', e);
     const cached = readCache(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE);
     if (cached && cached.btc) { activePriceSource = 'キャッシュ'; applyPriceData(cached.btc, 'cached'); return; }
     activePriceSource = '参考値'; applyPriceData(FALLBACK_PRICE, 'fallback');
@@ -1603,30 +1561,17 @@ async function fetchPrice() {
 }
 
 async function fetchHistory() {
-  const tfMap = { '1m': 1, '5m': 1, '1h': 2, '1d': 30 };
-  const days = tfMap[currentTF];
+  const tfMap = { '1m': '1m', '5m': '5m', '1h': '1h', '1d': '1d' };
+  const interval = tfMap[currentTF] || '5m';
   try {
-    const data = await fetchWithFallback(`/coins/bitcoin/market_chart?vs_currency=jpy&days=${days}&precision=0`);
-    const prices = data.prices;
-    const volumes = data.total_volumes;
-    if (!prices || !prices.length) throw new Error('no prices');
+    const data = await fetchWithFallback(`/klines?symbol=BTCJPY&interval=${interval}&limit=100`);
+    if (!data || !data.length) throw new Error('no prices');
 
-    const stepMap = { '1m': 2, '5m': 10, '1h': 20, '1d': 24 };
-    const step = stepMap[currentTF] || 1;
-    const sampled = prices.filter((_, i) => i % step === 0).slice(-100);
-    const sampledVols = volumes ? volumes.filter((_, i) => i % step === 0).slice(-100) : [];
+    priceHistory = data.map(k => parseFloat(k[4])); 
+    volumeHistory = data.map(k => parseFloat(k[5])); 
 
-    priceHistory = sampled.map(p => p[1]);
-    
-    // 出来高履歴の同期（バックテスト精度向上のため）
-    if (sampledVols.length === sampled.length) {
-      volumeHistory = sampledVols.map(v => v[1]);
-    } else {
-      volumeHistory = priceHistory.map(() => 0); // フォールバック
-    }
-
-    const labels = sampled.map(p => {
-      const dt = new Date(p[0]);
+    const labels = data.map(k => {
+      const dt = new Date(k[0]);
       if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
       return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
     });
@@ -1678,22 +1623,20 @@ async function fetchHistory() {
 function initWebSocket() {
   if (ws) { ws.onclose = null; ws.close(); }
   const wsBadge = document.getElementById('ws-status');
-  ws = new WebSocket('wss://ws.lightstream.bitflyer.com/json-rpc');
+  ws = new WebSocket('wss://stream.binance.com:9443/ws/btcjpy@ticker');
   
   ws.onopen = () => {
-    ws.send(JSON.stringify({ method: "subscribe", params: { channel: "lightning_ticker_BTC_JPY" } }));
     if (wsBadge) wsBadge.classList.add('ws-active');
   };
 
   ws.onmessage = (msg) => {
     try {
       const data = JSON.parse(msg.data);
-      if (data.method === "channelMessage" && data.params.message) {
-        const ticker = data.params.message;
-        const price = ticker.ltp;
-        const vol = ticker.volume_by_product;
+      if (data && data.c) {
+        const price = parseFloat(data.c);
+        const vol = parseFloat(data.v); 
         
-        activePriceSource = 'bitFlyer WS';
+        activePriceSource = 'Binance WS';
         usingFallbackPrice = false;
         usingCachedPrice = false;
         currentPrice = price;
@@ -1728,7 +1671,7 @@ function initWebSocket() {
 
   ws.onclose = () => {
     if (wsBadge) wsBadge.classList.remove('ws-active');
-    activePriceSource = 'CoinGecko';
+    activePriceSource = 'Binance API';
     clearTimeout(wsReconnectTimer);
     wsReconnectTimer = setTimeout(initWebSocket, 5000);
   };
