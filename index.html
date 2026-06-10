@@ -219,7 +219,7 @@
     <div class="btc-badge">₿</div>
     <div>
       <div class="ticker">BTC / JPY</div>
-      <div class="subtitle">リアルタイムダッシュボード</div>
+      <div class="subtitle">リアルタイム統計ダッシュボード</div>
     </div>
   </div>
   <div class="header-right">
@@ -313,7 +313,7 @@
   </div>
   
   <div class="entry-rationale" id="entry-rationale">
-    <div class="entry-rationale-title">エントリー根拠</div>
+    <div class="entry-rationale-title">エントリー根拠（統計分析）</div>
     <div class="entry-rationale-body" id="entry-rationale-body">分析中...</div>
   </div>
   
@@ -333,7 +333,7 @@
   <div class="safety-reasons" id="safety-reasons">
     <div class="safety-reason"><span>データ</span><strong>計算中...</strong></div>
   </div>
-  <div class="risk-note">確実性ではなく、損失上限と見送り条件を先に決めるための補助表示です。点数と根拠文は補助指標で、投資判断を保証するものではありません。</div>
+  <div class="risk-note">確実性ではなく、統計的な有意差と損失上限を先に決めるための補助指標です。投資判断を保証するものではありません。</div>
 
   <button class="btn" onclick="logCurrentTrade('手動記録')" style="width: 100%; margin-top: 12px; background: var(--bg2); padding: 8px;">📝 現在の指標とスコアをジャーナルに記録</button>
 </div>
@@ -342,9 +342,14 @@
   <div class="card-header">
     <span class="card-title">
       価格チャート (JPY)
-      <label class="checkbox-label" style="margin-left: 10px;">
-        <input type="checkbox" id="toggle-rr-lines" onchange="saveRRToggle(); renderPriceChart();"> RRライン表示
-      </label>
+      <div style="display: flex; gap: 12px; margin-left: 12px;">
+        <label class="checkbox-label">
+          <input type="checkbox" id="toggle-rr-lines" onchange="saveRRToggle(); renderPriceChart();"> RRライン
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="toggle-pred-band" onchange="savePredToggle(); renderPriceChart();"> 95%予測帯
+        </label>
+      </div>
     </span>
     <div class="tf-btns">
       <button class="tf-btn" onclick="setTF('1m')" id="tf-1m">1分</button>
@@ -393,32 +398,17 @@
     <div class="rsi-labels"><span>売られ過ぎ 30</span><span>買われ過ぎ 70</span></div>
     <span class="signal signal-neutral" id="rsi-signal">計算中...</span>
   </div>
+  
   <div class="card" style="margin-bottom:0;">
-    <div class="ind-label">MACD (12/26)</div>
-    <div class="ind-value" id="macd-val">--</div>
-    <div style="position:relative;height:56px;margin-top:4px;">
-      <canvas id="macdChart" role="img" aria-label="MACDヒストグラム"></canvas>
-    </div>
-    <span class="signal signal-neutral" id="macd-signal">計算中...</span>
-  </div>
-  <div class="card" style="margin-bottom:0;">
-    <div class="ind-label">ボリンジャーバンド (20)</div>
+    <div class="ind-label">出来高検定・価格予測</div>
     <div style="margin-top:4px;">
-      <div class="ma-row"><span class="ma-key">上限 (+2σ)</span><span class="ma-val" id="bb-upper">--</span></div>
-      <div class="ma-row"><span class="ma-key">中央 (20MA)</span><span class="ma-val" id="bb-mid">--</span></div>
-      <div class="ma-row"><span class="ma-key">下限 (−2σ)</span><span class="ma-val" id="bb-lower">--</span></div>
+      <div class="ma-row"><span class="ma-key">出来高 Zスコア</span><span class="ma-val" id="vol-z-val">--</span></div>
+      <div class="ma-row"><span class="ma-key">95% 予測上限</span><span class="ma-val" id="pred-high">--</span></div>
+      <div class="ma-row"><span class="ma-key">95% 予測下限</span><span class="ma-val" id="pred-low">--</span></div>
     </div>
-    <span class="signal signal-neutral" id="bb-signal">計算中...</span>
+    <span class="signal signal-neutral" id="pred-signal">計算中...</span>
   </div>
-  <div class="card" style="margin-bottom:0;">
-    <div class="ind-label">統計・ボラティリティ</div>
-    <div style="margin-top:4px;">
-      <div class="ma-row"><span class="ma-key">Zスコア (20)</span><span class="ma-val" id="z-score-val">--</span></div>
-      <div class="ma-row"><span class="ma-key">ATR (14)</span><span class="ma-val" id="atr-val">--</span></div>
-      <div class="ma-row"><span class="ma-key">変動率 (14)</span><span class="ma-val" id="vol-val">--</span></div>
-    </div>
-    <span class="signal signal-neutral" id="trend-signal">計算中...</span>
-  </div>
+
   <div class="card" style="margin-bottom:0;">
     <div class="ind-label">移動平均線</div>
     <div style="margin-top:4px;">
@@ -428,29 +418,41 @@
     </div>
     <span class="signal signal-neutral" id="ma-signal">計算中...</span>
   </div>
+
   <div class="card" style="margin-bottom:0;">
-    <div class="ind-label">追加分析</div>
+    <div class="ind-label">ボリンジャーバンド (20)</div>
     <div style="margin-top:4px;">
-      <div class="ma-row"><span class="ma-key">MACD強度</span><span class="ma-val" id="macd-strength">--</span></div>
-      <div class="ma-row"><span class="ma-key">RSI乖離</span><span class="ma-val" id="rsi-div">--</span></div>
-      <div class="ma-row"><span class="ma-key">BB乖離率</span><span class="ma-val" id="bb-dev">--</span></div>
+      <div class="ma-row"><span class="ma-key">上限 (+2σ)</span><span class="ma-val" id="bb-upper">--</span></div>
+      <div class="ma-row"><span class="ma-key">中央 (20MA)</span><span class="ma-val" id="bb-mid">--</span></div>
+      <div class="ma-row"><span class="ma-key">下限 (−2σ)</span><span class="ma-val" id="bb-lower">--</span></div>
     </div>
-    <span class="signal signal-neutral" id="advanced-signal">計算中...</span>
+    <span class="signal signal-neutral" id="bb-signal">計算中...</span>
+  </div>
+
+  <div class="card" style="margin-bottom:0;">
+    <div class="ind-label">ATR / ボラティリティ</div>
+    <div style="margin-top:4px;">
+      <div class="ma-row"><span class="ma-key">Zスコア (20)</span><span class="ma-val" id="z-score-val">--</span></div>
+      <div class="ma-row"><span class="ma-key">ATR (14)</span><span class="ma-val" id="atr-val">--</span></div>
+      <div class="ma-row"><span class="ma-key">変動率 (14)</span><span class="ma-val" id="vol-val">--</span></div>
+    </div>
+    <span class="signal signal-neutral" id="trend-signal">計算中...</span>
+  </div>
+
+  <div class="card" style="margin-bottom:0;">
+    <div class="ind-label">MACD (12/26)</div>
+    <div class="ind-value" id="macd-val">--</div>
+    <div style="position:relative;height:56px;margin-top:4px;">
+      <canvas id="macdChart" role="img" aria-label="MACDヒストグラム"></canvas>
+    </div>
+    <span class="signal signal-neutral" id="macd-signal">計算中...</span>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">📈 出来高分析</span></div>
-  <div style="margin-top:4px;">
-    <div class="ma-row"><span class="ma-key">出来高変化</span><span class="ma-val" id="volume-change">--</span></div>
-    <div class="ma-row"><span class="ma-key">出来高強度</span><span class="ma-val" id="volume-strength">--</span></div>
-    <div class="ma-row"><span class="ma-key">価格/出来高相関</span><span class="ma-val" id="volume-trend">--</span></div>
+  <div class="card-header" style="margin-bottom:10px;">
+    <span class="card-title">🧭 サポート / レジスタンス</span>
   </div>
-  <span class="signal signal-neutral" id="volume-signal">計算中...</span>
-</div>
-
-<div class="card">
-  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">🧭 サポート / レジスタンス</span></div>
   <div style="margin-top:4px;">
     <div class="ma-row"><span class="ma-key">サポート</span><span class="ma-val" id="support-level">--</span></div>
     <div class="ma-row"><span class="ma-key">レジスタンス</span><span class="ma-val" id="resistance-level">--</span></div>
@@ -523,23 +525,18 @@ let ws = null;
 let wsReconnectTimer = null;
 let throttleTimer = null;
 let currentRR = { entry: null, stop: null, target: null, show: false };
-let latestStats = {}; // ジャーナル用の一時データ保存
+let latestStats = {}; 
 
 const PRICE_CACHE_KEY = 'btc_price_cache_v2';
 const HISTORY_CACHE_KEY = 'btc_history_cache_v2';
 const TRADE_MODE_KEY = 'btc_trade_mode_v1';
 const WEBHOOK_KEY = 'btc_webhook_url';
 const RR_TOGGLE_KEY = 'btc_show_rr_lines';
+const PRED_TOGGLE_KEY = 'btc_show_pred_band';
 const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
 const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 
-const FALLBACK_PRICE = {
-  jpy: 10450000,
-  jpy_24h_change: 0.42,
-  jpy_24h_vol: 564321.1,
-  jpy_24h_high: 10580000,
-  jpy_24h_low: 10280000
-};
+const FALLBACK_PRICE = { jpy: 10450000, jpy_24h_change: 0.42, jpy_24h_vol: 564321.1, jpy_24h_high: 10580000, jpy_24h_low: 10280000 };
 
 function buildFallbackHistory(basePrice = FALLBACK_PRICE.jpy) {
   const raw = Array.from({ length: 96 }, (_, i) => {
@@ -554,11 +551,7 @@ function buildFallbackHistory(basePrice = FALLBACK_PRICE.jpy) {
   });
 }
 
-function fmt(n) {
-  if (!n && n !== 0) return '--';
-  return '¥' + Math.round(n).toLocaleString('ja-JP');
-}
-
+function fmt(n) { return !n && n !== 0 ? '--' : '¥' + Math.round(n).toLocaleString('ja-JP'); }
 function fmtSmall(n) {
   if (!n && n !== 0) return '--';
   const abs = Math.abs(n);
@@ -566,7 +559,6 @@ function fmtSmall(n) {
   if (abs >= 1000) return (n / 1000).toFixed(1) + 'K';
   return Math.round(n).toLocaleString('ja-JP');
 }
-
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
 function updateDataBanner() {
@@ -597,6 +589,7 @@ function loadRiskSettings() {
     if (saved.riskPct) document.getElementById('risk-percent').value = saved.riskPct;
     document.getElementById('webhook-url').value = localStorage.getItem(WEBHOOK_KEY) || '';
     document.getElementById('toggle-rr-lines').checked = (localStorage.getItem(RR_TOGGLE_KEY) === 'true');
+    document.getElementById('toggle-pred-band').checked = (localStorage.getItem(PRED_TOGGLE_KEY) === 'true');
   } catch (e) {}
 }
 
@@ -604,15 +597,14 @@ function saveRiskSettings() {
   const balance = parseFloat(document.getElementById('account-balance').value) || 0;
   const riskPct = parseFloat(document.getElementById('risk-percent').value) || 1;
   try {
-    localStorage.setItem('btc_risk_settings', JSON.stringify({
-      balance: Math.max(0, Math.round(balance)),
-      riskPct: clamp(riskPct, 0.1, 5)
-    }));
+    localStorage.setItem('btc_risk_settings', JSON.stringify({ balance: Math.max(0, Math.round(balance)), riskPct: clamp(riskPct, 0.1, 5) }));
   } catch (e) {}
 }
 
 function saveWebhook() { localStorage.setItem(WEBHOOK_KEY, document.getElementById('webhook-url').value); }
 function saveRRToggle() { localStorage.setItem(RR_TOGGLE_KEY, document.getElementById('toggle-rr-lines').checked); }
+function savePredToggle() { localStorage.setItem(PRED_TOGGLE_KEY, document.getElementById('toggle-pred-band').checked); }
+
 function loadTradeMode() {
   const mode = localStorage.getItem(TRADE_MODE_KEY) || 'spot';
   const el = document.getElementById('trade-mode-select');
@@ -631,10 +623,7 @@ function readCache(key, maxAge) {
     return cached;
   } catch (e) { return null; }
 }
-
-function writeCache(key, payload) {
-  try { localStorage.setItem(key, JSON.stringify({ ...payload, savedAt: Date.now() })); } catch (e) {}
-}
+function writeCache(key, payload) { try { localStorage.setItem(key, JSON.stringify({ ...payload, savedAt: Date.now() })); } catch (e) {} }
 
 function setSafetyText(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
 function setTradeText(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
@@ -671,25 +660,26 @@ function renderScoreBreakdown(parts, total) {
   `;
 }
 
-function generateEntryRationale({ grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25, volChange, volatility, rr, nearResistance, nearSupport, zScore, current, stop, target, size, dataState }) {
+function generateEntryRationale({ grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25, volZScore, zScore, volatility, rr, nearResistance, nearSupport, current, stop, target, size, dataState }) {
   const positives = [];
   const cautions = [];
   if (ma5 && ma25) {
     if (ma5 > ma25) positives.push('短期MAが中期MAを上回っており、短期トレンドは上向きです');
     else cautions.push('短期MAが中期MAを下回っており、上値は重めです');
   }
+  
+  if (volZScore >= 2.0) positives.push(`出来高のZスコアが+${volZScore.toFixed(1)}（上位約2.5%の異常値）を記録し、トレンド発生の有意差が認められます`);
+  else if (volZScore <= -1.0) cautions.push('出来高水準が統計的に弱く、ダマシ（フェイク）の確率が高まっています');
+
+  if (zScore <= -2.0) positives.push('価格が統計的に売られすぎ水準に達しており、正規分布に基づく反発の期待値が高いです');
+  else if (zScore >= 2.0) cautions.push('価格が異常値レベル（Zスコア>2.0）の過熱を示しており、反落リスク大です');
+
   if (macdVal > 0) positives.push('MACDはプラス圏で、買い方向の勢いがあります');
   else cautions.push('MACDはマイナス圏で、下落方向の勢いが残っています');
   if (rsi >= 45 && rsi <= 65) positives.push('RSIは中立〜やや強めで、過熱しすぎていません');
   else if (rsi >= 72) cautions.push('RSIが高く、短期的な買われ過ぎに注意が必要です');
   else if (rsi <= 28) cautions.push('RSIが低く、売られ過ぎですが反転確認が必要です');
-  else cautions.push('RSIは明確な追い風ではありません');
   
-  if (zScore <= -2) positives.push('Zスコア的に売られすぎ水準に達しており、反発の期待値が高いです');
-  else if (zScore >= 2) cautions.push('Zスコアが異常値レベルの過熱を示しており、反落リスク大です');
-
-  if (volChange > 10) positives.push('出来高が増えており、値動きの信頼度が上がっています');
-  else if (volChange < -10) cautions.push('出来高が弱く、ブレイクの信頼度は低めです');
   if (nearResistance) cautions.push('レジスタンスが近く、利幅より反落リスクが目立ちます');
   if (nearSupport) cautions.push('サポートが近く、ショートは反発リスクがあります');
   if (volatility > 1.2) cautions.push('ボラティリティが高く、損切り幅が広がりやすい状態です');
@@ -702,7 +692,7 @@ function generateEntryRationale({ grade, entryScore, directionLabel, direction, 
   if (entryScore >= 80 && direction !== 'neutral') {
     action = `${grade.label}。${directionLabel}で条件は比較的そろっています。入る場合はエントリー${fmt(current)}、損切り${fmt(stop)}、利確${fmt(target)}を目安に、推奨数量${size.toFixed(5)} BTC以内で検討します。`;
   } else if (entryScore >= 60 && direction !== 'neutral') {
-    action = `${grade.label}。${directionLabel}ですが、まだ確認待ちの材料があります。すぐに飛び乗るより、押し目・戻り・出来高の増加を確認してから、数量を抑えて検討する場面です。`;
+    action = `${grade.label}。${directionLabel}ですが、まだ確認待ちの材料があります。すぐに飛び乗るより、押し目・戻り・有意な出来高増を確認してから、数量を抑えて検討する場面です。`;
   } else {
     action = `${grade.label}。現時点では優位性が十分ではないため、見送りを優先します。方向感がそろうまで待ち、無理なエントリーは避ける場面です。`;
   }
@@ -724,14 +714,10 @@ function applyTradeModeDisplay() {
   const rationaleBody = document.getElementById('entry-rationale-body');
 
   if (mode === 'spot') {
-    setLabel('label-safety-entry', '買い候補');
-    setLabel('label-safety-stop', '損切り目安');
-    setLabel('label-safety-target', '利確目安');
-    setLabel('label-safety-size', '買付上限');
-    setLabel('label-plan-entry', '買い候補');
-    setLabel('label-plan-stop', '損切り');
-    setLabel('label-plan-target', '利確');
-    setLabel('label-plan-size', '買付上限');
+    setLabel('label-safety-entry', '買い候補'); setLabel('label-safety-stop', '損切り目安');
+    setLabel('label-safety-target', '利確目安'); setLabel('label-safety-size', '買付上限');
+    setLabel('label-plan-entry', '買い候補'); setLabel('label-plan-stop', '損切り');
+    setLabel('label-plan-target', '利確'); setLabel('label-plan-size', '買付上限');
 
     if (isShort) {
       document.getElementById('safety-direction').textContent = '下落警戒';
@@ -757,42 +743,26 @@ function applyTradeModeDisplay() {
         const base = rationaleBody.textContent.replace(/\s*現物ロングのみモードでは[\s\S]*$/, '').trim();
         rationaleBody.textContent = base + ' 現物ロングのみモードでは、ショート寄りの場面は「買い見送り」として扱います。';
       }
-      
       currentRR.show = false;
       renderPriceChart();
-    } else {
-      if (noteEl) noteEl.style.display = 'none';
-    }
+    } else { if (noteEl) noteEl.style.display = 'none'; }
   } else {
-    // Both Mode
     if (noteEl) noteEl.style.display = 'none';
     if (isShort) {
-      setLabel('label-safety-entry', 'ショート入口');
-      setLabel('label-safety-stop', '損切り(上)');
-      setLabel('label-safety-target', '利確/買戻し');
-      setLabel('label-safety-size', '上限数量');
-      setLabel('label-plan-entry', 'ショート入口');
-      setLabel('label-plan-stop', '損切り(上)');
-      setLabel('label-plan-target', '利確/買戻し');
-      setLabel('label-plan-size', '上限数量');
+      setLabel('label-safety-entry', 'ショート入口'); setLabel('label-safety-stop', '損切り(上)');
+      setLabel('label-safety-target', '利確/買戻し'); setLabel('label-safety-size', '上限数量');
+      setLabel('label-plan-entry', 'ショート入口'); setLabel('label-plan-stop', '損切り(上)');
+      setLabel('label-plan-target', '利確/買戻し'); setLabel('label-plan-size', '上限数量');
     } else if (isLong) {
-      setLabel('label-safety-entry', '買い入口');
-      setLabel('label-safety-stop', '損切り(下)');
-      setLabel('label-safety-target', '利確/売却');
-      setLabel('label-safety-size', '買付上限');
-      setLabel('label-plan-entry', '買い入口');
-      setLabel('label-plan-stop', '損切り(下)');
-      setLabel('label-plan-target', '利確/売却');
-      setLabel('label-plan-size', '買付上限');
+      setLabel('label-safety-entry', '買い入口'); setLabel('label-safety-stop', '損切り(下)');
+      setLabel('label-safety-target', '利確/売却'); setLabel('label-safety-size', '買付上限');
+      setLabel('label-plan-entry', '買い入口'); setLabel('label-plan-stop', '損切り(下)');
+      setLabel('label-plan-target', '利確/売却'); setLabel('label-plan-size', '買付上限');
     } else {
-      setLabel('label-safety-entry', 'エントリー');
-      setLabel('label-safety-stop', '損切り目安');
-      setLabel('label-safety-target', '利確目安');
-      setLabel('label-safety-size', '上限数量');
-      setLabel('label-plan-entry', 'エントリー');
-      setLabel('label-plan-stop', '損切り');
-      setLabel('label-plan-target', '利確');
-      setLabel('label-plan-size', '推奨数量');
+      setLabel('label-safety-entry', 'エントリー'); setLabel('label-safety-stop', '損切り目安');
+      setLabel('label-safety-target', '利確目安'); setLabel('label-safety-size', '上限数量');
+      setLabel('label-plan-entry', 'エントリー'); setLabel('label-plan-stop', '損切り');
+      setLabel('label-plan-target', '利確'); setLabel('label-plan-size', '推奨数量');
     }
   }
 }
@@ -818,12 +788,16 @@ function calcEMA(arr, n) {
   for (let i = n; i < arr.length; i++) ema = arr[i] * k + ema * (1 - k);
   return ema;
 }
+function calcStdDev(arr, n = 20) {
+  if (arr.length < n) return 0;
+  const slice = arr.slice(-n);
+  const mean = slice.reduce((a, b) => a + b, 0) / n;
+  return Math.sqrt(slice.map(v => (v - mean) ** 2).reduce((a, b) => a + b, 0) / n);
+}
 function calcBB(arr, n = 20) {
   if (arr.length < n) return null;
-  const slice = arr.slice(-n);
-  const mid = slice.reduce((a, b) => a + b, 0) / n;
-  const variance = slice.map(v => (v - mid) ** 2).reduce((a, b) => a + b, 0) / n;
-  const std = Math.sqrt(variance);
+  const mid = arr.slice(-n).reduce((a, b) => a + b, 0) / n;
+  const std = calcStdDev(arr, n);
   return { upper: mid + 2 * std, mid, lower: mid - 2 * std };
 }
 function calcATR(arr, n = 14) {
@@ -847,20 +821,11 @@ function calcMomentum(arr, n = 10) {
   const past = arr[arr.length - 1 - n];
   return (current - past) / past * 100;
 }
-function calcVolumeStrength(volumeHistory) {
-  if (!volumeHistory || volumeHistory.length < 2) return 0;
-  const recent = volumeHistory.slice(-10);
-  const prev = volumeHistory.slice(-20, -10);
-  const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
-  const prevAvg = prev.length ? prev.reduce((a, b) => a + b, 0) / prev.length : recentAvg;
-  return ((recentAvg - prevAvg) / Math.max(prevAvg, 1)) * 100;
-}
 function calcZScore(arr, n = 20) {
   if (arr.length < n) return 0;
   const slice = arr.slice(-n);
   const mean = slice.reduce((a, b) => a + b, 0) / n;
-  const variance = slice.map(v => (v - mean) ** 2).reduce((a, b) => a + b, 0) / n;
-  const std = Math.sqrt(variance);
+  const std = calcStdDev(arr, n);
   return std === 0 ? 0 : (arr[arr.length - 1] - mean) / std;
 }
 
@@ -903,8 +868,8 @@ function updateSafetyPanel() {
   const atrPct = atr / current * 100;
   const mom = calcMomentum(priceHistory, 10);
   const volatility = calcVolatility(priceHistory, 14);
-  const volChange = calcVolumeStrength(volumeHistory);
   const zScore = calcZScore(priceHistory, 20);
+  const volZScore = calcZScore(volumeHistory, 14); // 出来高のZ検定
   
   const support = bb ? bb.lower : current * 0.98;
   const resistance = bb ? bb.upper : current * 1.02;
@@ -944,8 +909,8 @@ function updateSafetyPanel() {
     { label: 'MA', points: ma5 && ma25 ? (ma5 > ma25 ? 20 : -20) : 0, maxAbs: 20 },
     { label: 'MACD', points: macdVal > 0 ? 15 : -15, maxAbs: 15 },
     { label: 'RSI', points: (rsi >= 45 && rsi <= 65) ? 10 : (rsi >= 72 || rsi <= 28) ? -15 : -5, maxAbs: 15 },
-    { label: 'Z検定', points: zScore <= -2 ? 15 : zScore >= 2 ? -15 : (zScore > 0 ? 5 : -5), maxAbs: 15 },
-    { label: '出来高', points: volChange > 10 ? 10 : volChange < -10 ? -10 : 0, maxAbs: 10 },
+    { label: '価格Z検定', points: zScore <= -2 ? 15 : zScore >= 2 ? -15 : (zScore > 0 ? 5 : -5), maxAbs: 15 },
+    { label: '出来高Z検定', points: volZScore >= 2 ? 10 : volZScore <= -1 ? -10 : 0, maxAbs: 10 },
     { label: 'サポレジ', points: nearResistanceForEntry ? -10 : nearSupportForEntry ? -10 : 5, maxAbs: 10 },
     { label: 'ボラ', points: volatility > 1.2 ? -15 : volatility > 0.7 ? -7 : 5, maxAbs: 15 },
     { label: 'RR', points: rr >= 2 ? 10 : rr < 1.5 ? -10 : 0, maxAbs: 10 }
@@ -958,7 +923,7 @@ function updateSafetyPanel() {
   const grade = getEntryGrade(entryScore);
   
   // Update latestStats for Journaling
-  latestStats = { price: current, score: entryScore, dir: direction, rsi, zScore };
+  latestStats = { price: current, score: entryScore, dir: direction, rsi, zScore, volZScore };
 
   status.className = grade.className;
   status.textContent = grade.statusText;
@@ -984,17 +949,17 @@ function updateSafetyPanel() {
   const dataState = activePriceSource === 'bitFlyer WS' ? 'WSリアルタイム' : usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム';
   
   setTradeText('entry-rationale-body', generateEntryRationale({
-    grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25,
-    volChange, volatility, rr, nearResistance: nearResistanceForEntry,
-    nearSupport: nearSupportForEntry, zScore, current, stop, target, size, dataState
+    grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25, volZScore,
+    volatility, rr, nearResistance: nearResistanceForEntry, nearSupport: nearSupportForEntry,
+    zScore, current, stop, target, size, dataState
   }));
 
   const reasons = [
     ['データ', dataState],
     ['トレンド', directionLabel + ' (' + trendScore + ')'],
     ['過熱感', 'RSI ' + rsi.toFixed(1)],
-    ['ボラ', 'ATR ' + atrPct.toFixed(2) + '%'],
-    ['統計', 'Zスコア ' + zScore.toFixed(2)],
+    ['価格異常検定', 'Zスコア ' + zScore.toFixed(2)],
+    ['出来高有意性', 'Zスコア ' + volZScore.toFixed(2)],
     ['RR', rr.toFixed(2) + ' : 1'],
     ['損失上限', fmt(riskYen) + ' / 回']
   ];
@@ -1052,15 +1017,7 @@ function updateIndicators() {
     else { maSig.className = 'signal signal-sell'; maSig.textContent = '短期 < 長期 (下降傾向)'; }
   }
 
-  const volChange = calcVolumeStrength(volumeHistory);
-  document.getElementById('volume-change').textContent = volChange >= 0 ? '+' + volChange.toFixed(1) + '%' : volChange.toFixed(1) + '%';
-  document.getElementById('volume-strength').textContent = volChange > 10 ? '強' : volChange < -10 ? '弱' : '標準';
-  document.getElementById('volume-trend').textContent = volChange > 0 ? '買い材料' : '売り材料';
-  const volumeSignal = document.getElementById('volume-signal');
-  if (volChange > 10) { volumeSignal.className = 'signal signal-buy'; volumeSignal.textContent = '出来高が拡大し、上昇の信頼度が高い'; }
-  else if (volChange < -10) { volumeSignal.className = 'signal signal-sell'; volumeSignal.textContent = '出来高が縮小し、下落の圧力が残る'; }
-  else { volumeSignal.className = 'signal signal-neutral'; volumeSignal.textContent = '出来高は概ね安定'; }
-
+  // Volume / ATR / Trend context
   const zScore = calcZScore(priceHistory, 20);
   const atr = calcATR(priceHistory, 14);
   const vol = calcVolatility(priceHistory, 14);
@@ -1071,13 +1028,35 @@ function updateIndicators() {
   document.getElementById('vol-val').textContent = vol.toFixed(2) + '%';
   
   const trendSig = document.getElementById('trend-signal');
-  if (zScore >= 2) { trendSig.className = 'signal signal-sell'; trendSig.textContent = 'Zスコア過熱 (統計的異常値)'; }
-  else if (zScore <= -2) { trendSig.className = 'signal signal-buy'; trendSig.textContent = 'Zスコア売られすぎ (反発警戒)'; }
+  if (zScore >= 2) { trendSig.className = 'signal signal-sell'; trendSig.textContent = '価格Zスコア過熱 (統計的異常値)'; }
+  else if (zScore <= -2) { trendSig.className = 'signal signal-buy'; trendSig.textContent = '価格Zスコア売られすぎ (反発警戒)'; }
   else { trendSig.className = 'signal signal-neutral'; trendSig.textContent = '統計的正常範囲'; }
 
+  // 出来高有意性検定と予測帯（Probability）
+  const volZScore = calcZScore(volumeHistory, 14);
+  const stdDev = calcStdDev(priceHistory, 20);
+  const predHigh = current + (stdDev * 2);
+  const predLow = current - (stdDev * 2);
+  
+  document.getElementById('vol-z-val').textContent = volZScore.toFixed(2);
+  document.getElementById('pred-high').textContent = fmt(predHigh);
+  document.getElementById('pred-low').textContent = fmt(predLow);
+
+  const predSignal = document.getElementById('pred-signal');
+  if (volZScore >= 2.0) { 
+    predSignal.className = 'signal signal-buy'; 
+    predSignal.textContent = '出来高に統計的な有意差あり (p < 0.05)'; 
+  }
+  else if (volZScore <= -1.0) { 
+    predSignal.className = 'signal signal-risk'; 
+    predSignal.textContent = '出来高枯渇・ダマシ警戒'; 
+  }
+  else { 
+    predSignal.className = 'signal signal-neutral'; 
+    predSignal.textContent = '通常出来高レベル'; 
+  }
+
   const macdStrength = ema12 - ema26;
-  const rsiDev = rsi - 50;
-  const bbDev = bb ? ((current - bb.mid) / bb.mid) * 100 : 0;
   const support = bb ? bb.lower : current * 0.98;
   const resistance = bb ? bb.upper : current * 1.02;
   const supportGap = ((current - support) / Math.max(1, support)) * 100;
@@ -1092,12 +1071,7 @@ function updateIndicators() {
   else if (supportGap < resistanceGap) { supportSignal.className = 'signal signal-buy'; supportSignal.textContent = 'サポート側に近い'; }
   else { supportSignal.className = 'signal signal-sell'; supportSignal.textContent = 'レジスタンス側に近い'; }
 
-  document.getElementById('macd-strength').textContent = macdStrength >= 0 ? '+' + macdStrength.toFixed(1) : macdStrength.toFixed(1);
-  document.getElementById('rsi-div').textContent = rsiDev.toFixed(1) + 'pt';
-  document.getElementById('bb-dev').textContent = bbDev.toFixed(2) + '%';
-
-  const advancedSig = document.getElementById('advanced-signal');
-  const summaryEl = document.getElementById('summary-comment');
+  const bbDev = bb ? ((current - bb.mid) / bb.mid) * 100 : 0;
   const trendScore = [
     macdStrength > 0 ? 1 : -1,
     ma5 && ma25 ? (ma5 > ma25 ? 1 : -1) : 0,
@@ -1114,7 +1088,7 @@ function updateIndicators() {
 
   let verdict = '方向感なし・見送り寄り';
   let verdictText = '上昇と下落の材料が混ざっています。無理に入らず、方向がそろうまで待つ場面です。';
-  let nextCheck = 'MA5/MA25、RSI 45-60、出来高拡大が同じ方向へそろうか確認。';
+  let nextCheck = 'MA5/MA25、RSI 45-60、出来高の有意差が同じ方向へそろうか確認。';
   let summaryClass = 'summary-neutral';
 
   if (dataIsFallback) {
@@ -1155,7 +1129,7 @@ function updateIndicators() {
   } else if (trendScore > 0) {
     verdict = '上向きだが条件待ち';
     verdictText = nearResistance ? '上向き材料はありますが、レジスタンスが近く、利幅より反落リスクが目立ちます。' : '上向き材料はありますが、まだ全指標がそろっていません。追いかけず確認待ちです。';
-    nextCheck = nearResistance ? 'レジスタンス突破後の定着、または押し目形成を確認。' : 'RSI過熱なし、出来高拡大、MA5維持を確認。';
+    nextCheck = nearResistance ? 'レジスタンス突破後の定着、または押し目形成を確認。' : 'RSI過熱なし、有意な出来高の発生、MA5維持を確認。';
     summaryClass = 'summary-neutral';
   } else if (trendScore < 0) {
     verdict = '下向きだが条件待ち';
@@ -1173,8 +1147,8 @@ function updateIndicators() {
   if (dataIsCached) flags.push('直近成功データ');
   if (nearResistance) flags.push('レジスタンス近い');
   if (nearSupport) flags.push('サポート近い');
-  if (volChange > 10) flags.push('出来高拡大');
-  if (volChange < -10) flags.push('出来高縮小');
+  if (volZScore >= 2.0) flags.push('出来高異常増加 (p<0.05)');
+  if (volZScore <= -1.0) flags.push('出来高枯渇傾向');
   if (!flags.length) flags.push('大きな警戒フラグなし');
 
   summaryEl.className = 'summary-panel ' + summaryClass;
@@ -1200,9 +1174,19 @@ function renderPriceChart(labels) {
   });
 
   const showRR = document.getElementById('toggle-rr-lines')?.checked;
+  const showPred = document.getElementById('toggle-pred-band')?.checked;
+  
   const entryData = (showRR && currentRR.show) ? priceHistory.map(() => currentRR.entry) : [];
   const stopData = (showRR && currentRR.show) ? priceHistory.map(() => currentRR.stop) : [];
   const targetData = (showRR && currentRR.show) ? priceHistory.map(() => currentRR.target) : [];
+
+  const std = calcStdDev(priceHistory, 20);
+  const current = currentPrice || priceHistory[priceHistory.length - 1];
+  const pHigh = current + (std * 2);
+  const pLow = current - (std * 2);
+  
+  const predHighData = showPred ? priceHistory.map(() => pHigh) : [];
+  const predLowData = showPred ? priceHistory.map(() => pLow) : [];
 
   const dark = isDark();
   const gridColor = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
@@ -1215,11 +1199,13 @@ function renderPriceChart(labels) {
       data: {
         labels: labels || priceHistory.map((_, i) => i),
         datasets: [
-          { label: 'BTC/JPY', data: priceHistory, borderColor: '#378add', backgroundColor: 'rgba(55,138,221,0.07)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.35 },
-          { label: 'MA5', data: ma5Data, borderColor: '#1d9e75', borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.35, borderDash: [4, 3] },
-          { label: 'エントリー', data: entryData, borderColor: '#d6a800', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5, 5], hidden: !showRR },
-          { label: '損切り', data: stopData, borderColor: '#e24b4a', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5, 5], hidden: !showRR },
-          { label: '利確', data: targetData, borderColor: '#1d9e75', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5, 5], hidden: !showRR }
+          { label: 'BTC/JPY', data: priceHistory, borderColor: '#378add', backgroundColor: 'rgba(55,138,221,0.07)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.35, order: 10 },
+          { label: 'MA5', data: ma5Data, borderColor: '#1d9e75', borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.35, borderDash: [4, 3], order: 9 },
+          { label: 'エントリー', data: entryData, borderColor: '#d6a800', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5, 5], hidden: !showRR, order: 8 },
+          { label: '損切り', data: stopData, borderColor: '#e24b4a', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5, 5], hidden: !showRR, order: 7 },
+          { label: '利確', data: targetData, borderColor: '#1d9e75', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5, 5], hidden: !showRR, order: 6 },
+          { label: '95%予測上限', data: predHighData, borderColor: 'rgba(55,138,221,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [2, 2], fill: false, hidden: !showPred, order: 5 },
+          { label: '95%予測下限', data: predLowData, borderColor: 'rgba(55,138,221,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [2, 2], backgroundColor: 'rgba(55,138,221,0.08)', fill: '-1', hidden: !showPred, order: 4 }
         ]
       },
       options: {
@@ -1236,9 +1222,14 @@ function renderPriceChart(labels) {
     if (labels) priceChart.data.labels = labels;
     priceChart.data.datasets[0].data = priceHistory;
     priceChart.data.datasets[1].data = ma5Data;
+    
     priceChart.data.datasets[2].data = entryData; priceChart.data.datasets[2].hidden = !showRR;
     priceChart.data.datasets[3].data = stopData; priceChart.data.datasets[3].hidden = !showRR;
     priceChart.data.datasets[4].data = targetData; priceChart.data.datasets[4].hidden = !showRR;
+    
+    priceChart.data.datasets[5].data = predHighData; priceChart.data.datasets[5].hidden = !showPred;
+    priceChart.data.datasets[6].data = predLowData; priceChart.data.datasets[6].hidden = !showPred;
+
     priceChart.update('none');
   }
 }
@@ -1359,14 +1350,13 @@ function renderMacdChart() {
     macdChart = new Chart(ctx2, {
       type: 'bar',
       data: { labels: recent.map(() => ''), datasets: [{ data: recent, backgroundColor: colors, borderWidth: 0 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: { duration: 0 } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: { duration: 200 } }
     });
   } else {
     macdChart.data.datasets[0].data = recent; macdChart.data.datasets[0].backgroundColor = colors; macdChart.update('none');
   }
 }
 
-// データ取得ロジック（CoinGecko / bitFlyer / Coincheck 等）
 async function fetchExternalJson(url, retries = 1) {
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     const controller = new AbortController();
@@ -1455,15 +1445,9 @@ async function fetchPrice() {
   try {
     const data = await fetchWithFallback('/coins/markets?vs_currency=jpy&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h');
     const market = Array.isArray(data) ? data[0] : null;
-    const btc = market ? {
-      jpy: market.current_price, jpy_24h_change: market.price_change_percentage_24h || 0,
-      jpy_24h_vol: market.total_volume || 0, jpy_24h_high: market.high_24h, jpy_24h_low: market.low_24h
-    } : null;
+    const btc = market ? { jpy: market.current_price, jpy_24h_change: market.price_change_percentage_24h || 0, jpy_24h_vol: market.total_volume || 0, jpy_24h_high: market.high_24h, jpy_24h_low: market.low_24h } : null;
     if (!btc) throw new Error('no data');
-
-    activePriceSource = 'CoinGecko';
-    writeCache(PRICE_CACHE_KEY, { btc });
-    applyPriceData(btc, 'live');
+    activePriceSource = 'CoinGecko'; writeCache(PRICE_CACHE_KEY, { btc }); applyPriceData(btc, 'live');
   } catch (e) {
     console.error('CoinGecko fetchPrice error:', e);
     const alt = await fetchAlternativePrice();
@@ -1590,15 +1574,13 @@ function initWebSocket() {
   ws.onerror = () => { if (wsBadge) wsBadge.classList.remove('ws-active'); };
 }
 
-// ジャーナル・アラート等UI機能
 function logCurrentTrade(triggerType) {
-  if (!latestStats.price) {
-    showToast('データがまだありません'); return;
-  }
+  if (!latestStats.price) { showToast('データがまだありません'); return; }
   const record = {
     id: Date.now(), type: triggerType, date: new Date().toLocaleString(),
     price: latestStats.price, score: latestStats.score, dir: latestStats.dir, 
-    rsi: latestStats.rsi.toFixed(1), zScore: latestStats.zScore.toFixed(2)
+    rsi: latestStats.rsi.toFixed(1), zScore: latestStats.zScore.toFixed(2),
+    volZScore: latestStats.volZScore ? latestStats.volZScore.toFixed(2) : '--'
   };
   journal.unshift(record);
   if (journal.length > 30) journal.pop();
@@ -1615,7 +1597,7 @@ function renderJournal() {
       <div class="journal-top"><span>${j.date}</span><span>${j.type}</span></div>
       <div class="journal-data">
         <span>${j.dir === 'long' ? 'LONG' : j.dir === 'short' ? 'SHORT' : 'NEUTRAL'}</span><span>${fmt(j.price)}</span>
-        <span>${j.score}点</span><span>Z: ${j.zScore}</span><span>RSI: ${j.rsi}</span>
+        <span>${j.score}点</span><span>価格Z: ${j.zScore}</span><span>出来高Z: ${j.volZScore}</span>
       </div>
     </div>
   `).join('');
@@ -1699,9 +1681,9 @@ function startAutoRefresh() {
   refreshTimer = setInterval(fetchPrice, 60000);
 }
 
-// 初期化実行
-loadTradeMode();
+// init
 loadRiskSettings();
+loadTradeMode();
 renderAlerts();
 renderJournal();
 initWebSocket();
