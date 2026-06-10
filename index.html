@@ -4,11 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BTC/JPY ダッシュボード</title>
-
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ffffff">
 <link rel="apple-touch-icon" href="icon-192.png">
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   .depth-container { display: flex; height: 160px; gap: 4px; padding: 10px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 12px; }
@@ -16,7 +14,6 @@
   .depth-bar { height: 12px; font-size: 8px; color: #fff; display: flex; align-items: center; padding: 0 4px; transition: width 0.3s; }
   .depth-buy { background: var(--green); align-self: flex-end; }
   .depth-sell { background: var(--red); }
-
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --bg: #ffffff; --bg2: #f5f5f5; --bg3: #ececec;
@@ -86,15 +83,12 @@
   .ma-row:last-child { border-bottom: none; }
   .ma-key { color: var(--text2); }
   .ma-val { font-weight: 500; color: var(--text); }
-  
   .alert-form { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .alert-form select, .alert-form input[type=text], .alert-form input[type=number] { font-size: 13px; padding: 6px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; }
   .alert-form select { min-width: 130px; }
   .alert-form input[type=number] { flex: 1; min-width: 140px; }
-  .alert-form input::placeholder { color: var(--text3); }
   .webhook-field { width: 100%; margin-bottom: 12px; display: flex; }
   .webhook-field input { width: 100%; font-size: 12px; }
-
   .alert-list { display: flex; flex-direction: column; gap: 6px; }
   .alert-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); border-radius: var(--radius); padding: 8px 12px; font-size: 13px; }
   .alert-left { display: flex; align-items: center; gap: 8px; }
@@ -112,12 +106,10 @@
   .last-updated { font-size: 11px; color: var(--text3); }
   .safety-card { border-color: var(--border2); }
   .safety-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-  
   .trade-mode-panel { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg2); border-radius: var(--radius); padding: 9px 10px; margin: 0 0 12px; }
   .trade-mode-panel label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; }
   .trade-mode-panel select { font-size: 13px; padding: 6px 10px; border-radius: var(--radius); border: .5px solid var(--border2); background: var(--bg); color: var(--text); outline: none; }
   .spot-only-note { margin-top: 10px; background: var(--red-bg); color: var(--red); border-radius: var(--radius); padding: 9px 10px; font-size: 12px; line-height: 1.55; display: none; }
-
   .risk-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
   .risk-field { display: grid; gap: 5px; }
   .risk-field label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -143,7 +135,6 @@
   .trade-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
   .trade-value { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .risk-note { margin-top: 10px; color: var(--text3); font-size: 11px; line-height: 1.5; }
-  
   .summary-panel { display: grid; gap: 10px; font-size: 13px; line-height: 1.55; color: var(--text); }
   .summary-verdict { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 0.5px solid var(--border); }
   .summary-verdict span, .summary-detail span { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -159,17 +150,14 @@
   .summary-detail strong { font-size: 13px; color: var(--text); font-weight: 600; }
   .summary-flags { display: flex; flex-wrap: wrap; gap: 6px; }
   .summary-flags span { font-size: 11px; color: var(--text2); background: var(--bg2); border-radius: 99px; padding: 3px 8px; }
-  
   .candle-card { padding-bottom: 12px; }
   .candle-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: -2px 0 10px; }
   .candle-stat { min-width: 88px; flex: 1; background: var(--bg2); border-radius: var(--radius); padding: 8px 10px; }
   .candle-stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
   .candle-stat-value { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .candle-canvas-wrap { position: relative; height: 230px; border-radius: var(--radius); overflow: hidden; background: linear-gradient(180deg, var(--bg2), var(--bg)); border: 0.5px solid var(--border); }
-  
   .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); cursor: pointer; user-select: none; }
   .checkbox-label input { width: 14px; height: 14px; accent-color: var(--blue); cursor: pointer; }
-
   .journal-item { background: var(--bg2); border-radius: var(--radius); padding: 10px; font-size: 12px; margin-bottom: 6px; border-left: 4px solid var(--border2); }
   .journal-item.long { border-left-color: var(--green); }
   .journal-item.short { border-left-color: var(--red); }
@@ -368,7 +356,7 @@
 
 <div class="card candle-card">
   <div class="card-header">
-    <span class="card-title">ローソク足 <span style="color:var(--text3);font-weight:400;">(Kraken OHLCベース)</span></span>
+    <span class="card-title">ローソク足 <span style="color:var(--text3);font-weight:400;" id="chart-source-note">(Bybit OHLCベース)</span></span>
   </div>
   <div class="candle-summary">
     <div class="candle-stat">
@@ -494,7 +482,7 @@
   </div>
 </div>
 
-<div class="footer">※ Bybit API (BTCJPY) / Coincheck / bitFlyer / Kraken より取得。投資アドバイスではありません。</div>
+<div class="footer">※ Bybit API (BTCUSDT連動) / Kraken より取得。投資アドバイスではありません。</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -523,6 +511,8 @@ let usingFallbackHistory = false;
 let usingCachedPrice = false;
 let usingCachedHistory = false;
 let activePriceSource = 'Bybit';
+
+let currentUsdJpyRate = 150.0; // 為替レートの初期値
 
 let ws = null;
 let wsReconnectTimer = null;
@@ -1069,7 +1059,7 @@ function updateSafetyPanel() {
   setTradeText('plan-target', direction === 'neutral' ? '--' : fmt(target));
   setTradeText('plan-size', direction === 'neutral' ? '--' : size.toFixed(5) + ' BTC');
 
-  const dataState = activePriceSource === 'Binance WS' ? 'WSリアルタイム' : usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム';
+  const dataState = activePriceSource === 'Bybit WS' ? 'WSリアルタイム' : usingFallbackPrice || usingFallbackHistory ? '参考値あり' : usingCachedPrice || usingCachedHistory ? '直近成功データ' : 'リアルタイム';
   
   setTradeText('entry-rationale-body', generateEntryRationale({
     grade, entryScore, directionLabel, direction, rsi, macdVal, ma5, ma25, volZScore,
@@ -1458,6 +1448,13 @@ function renderCandlestickChart() {
   const directionText = (direction >= 0 ? '+' : '') + fmtSmall(direction);
   ctx.textAlign = 'left'; ctx.fillStyle = textColor;
   ctx.fillText('O ' + fmt(last.open) + '  H ' + fmt(last.high) + '  L ' + fmt(last.low) + '  C ' + fmt(last.close) + '  ' + directionText, plot.left, 10);
+  
+  // ソース表記を動的に更新
+  const noteEl = document.getElementById('chart-source-note');
+  if (noteEl) {
+    const isShortTerm = (currentTF === '1m' || currentTF === '5m');
+    noteEl.textContent = isShortTerm ? `(${activePriceSource.split(' ')[0]} BTCUSDT換算ベース)` : `(${activePriceSource.split(' ')[0]} BTCJPYベース)`;
+  }
 }
 
 function renderMacdChart() {
@@ -1523,7 +1520,7 @@ function applyPriceData(btc, source = 'live') {
 }
 
 async function fetchPrice() {
-  if(activePriceSource === 'Bybit WS LIVE') return; // WebSocket経由で更新中の場合はスキップ
+  if(activePriceSource === 'Bybit WS') return; 
   try {
     const data = await fetchExternalJson(`${BYBIT_BASE}/tickers?category=spot&symbol=BTCJPY`);
     if (!data || !data.result || !data.result.list || !data.result.list.length) throw new Error('no data');
@@ -1537,34 +1534,31 @@ async function fetchPrice() {
       jpy_24h_high: parseFloat(t.highPrice24h),
       jpy_24h_low: parseFloat(t.lowPrice24h)
     };
-    activePriceSource = 'Bybit';
+    activePriceSource = 'Bybit API';
     writeCache(PRICE_CACHE_KEY, { btc });
     applyPriceData(btc, 'live');
   } catch (e) {
     console.warn('Bybit fetchPrice error:', e);
-    // Fallback 1: Coincheck
     try {
       const cc = await fetchExternalJson('https://coincheck.com/api/ticker?pair=btc_jpy');
       if (cc && cc.last) {
         const btc = { jpy: +cc.last, jpy_24h_change: 0, jpy_24h_vol: +cc.volume * +cc.last, jpy_24h_high: +cc.high || +cc.last, jpy_24h_low: +cc.low || +cc.last };
-        activePriceSource = 'Coincheck';
+        activePriceSource = 'Coincheck API';
         writeCache(PRICE_CACHE_KEY, { btc });
         applyPriceData(btc, 'live');
         return;
       }
     } catch (e2) {}
-    // Fallback 2: bitFlyer
     try {
       const bf = await fetchExternalJson('https://api.bitflyer.com/v1/ticker?product_code=BTC_JPY');
       if (bf && bf.ltp) {
         const btc = { jpy: +bf.ltp, jpy_24h_change: 0, jpy_24h_vol: +(bf.volume_by_product || bf.volume || 0) * +bf.ltp, jpy_24h_high: +bf.ltp, jpy_24h_low: +bf.ltp };
-        activePriceSource = 'bitFlyer';
+        activePriceSource = 'bitFlyer API';
         writeCache(PRICE_CACHE_KEY, { btc });
         applyPriceData(btc, 'live');
         return;
       }
     } catch (e3) {}
-    // Fallback 3: Kraken
     try {
       const kd = await fetchExternalJson('https://api.kraken.com/0/public/Ticker?pair=XBTJPY');
       if (!kd.error || !kd.error.length) {
@@ -1573,40 +1567,54 @@ async function fetchPrice() {
         const kPrice = parseFloat(ticker.c[0]);
         const kOpen = parseFloat(ticker.o[1]);
         const btc = { jpy: kPrice, jpy_24h_change: ((kPrice - kOpen) / kOpen) * 100, jpy_24h_vol: parseFloat(ticker.v[1]), jpy_24h_high: parseFloat(ticker.h[1]), jpy_24h_low: parseFloat(ticker.l[1]) };
-        activePriceSource = 'Kraken';
+        activePriceSource = 'Kraken API';
         writeCache(PRICE_CACHE_KEY, { btc });
         applyPriceData(btc, 'live');
         return;
       }
     } catch (e4) {}
-    // Fallback 4: Cache
     const cached = readCache(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE);
     if (cached && cached.btc) { activePriceSource = 'キャッシュ'; applyPriceData(cached.btc, 'cached'); return; }
     activePriceSource = '参考値'; applyPriceData(FALLBACK_PRICE, 'fallback');
   }
 }
 
+let currentUsdJpyRate = 150.0;
+
 async function fetchHistory() {
-  // Bybit interval mapping
   const intervalMap = { '1m': '1', '5m': '5', '1h': '60', '1d': 'D' };
   const interval = intervalMap[currentTF] || '5';
-  const limit = 80;
+  const limit = 100;
+  
+  const isShortTerm = (currentTF === '1m' || currentTF === '5m');
+  const symbol = isShortTerm ? 'BTCUSDT' : 'BTCJPY';
 
   try {
-    const data = await fetchExternalJson(`${BYBIT_BASE}/kline?category=spot&symbol=BTCJPY&interval=${interval}&limit=${limit}`);
+    const data = await fetchExternalJson(`${BYBIT_BASE}/kline?category=spot&symbol=${symbol}&interval=${interval}&limit=${limit}`);
     if (!data || !data.result || !data.result.list || !data.result.list.length) throw new Error('no klines');
 
-    // Bybit returns newest first → reverse
     const klines = data.result.list.slice().reverse();
-    // Format: [startTime(ms), open, high, low, close, volume, turnover]
-    priceHistory = klines.map(k => parseFloat(k[4]));   // close
-    volumeHistory = klines.map(k => parseFloat(k[5]));  // volume
+    
+    let rate = 1;
+    if (isShortTerm) {
+      const latestUsdtPrice = parseFloat(klines[klines.length - 1][4]);
+      if (currentPrice && latestUsdtPrice) {
+        rate = currentPrice / latestUsdtPrice;
+        currentUsdJpyRate = rate;
+      } else {
+        rate = currentUsdJpyRate;
+      }
+    }
+
+    priceHistory = klines.map(k => parseFloat(k[4]) * rate);
+    volumeHistory = klines.map(k => parseFloat(k[5]));
     ohlcHistory = klines.map(k => ({
-      open:  parseFloat(k[1]),
-      high:  parseFloat(k[2]),
-      low:   parseFloat(k[3]),
-      close: parseFloat(k[4])
+      open:  parseFloat(k[1]) * rate,
+      high:  parseFloat(k[2]) * rate,
+      low:   parseFloat(k[3]) * rate,
+      close: parseFloat(k[4]) * rate
     }));
+    
     const labels = klines.map(k => {
       const dt = new Date(parseInt(k[0]));
       if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
@@ -1620,15 +1628,27 @@ async function fetchHistory() {
     updateDataBanner(); updateIndicators(); updateSafetyPanel();
   } catch (e) {
     console.warn('Bybit OHLC error, trying Kraken:', e);
-    // Kraken fallback: XBTJPY (not BTCJPY, more reliable)
     try {
       const tfMap = { '1m': 1, '5m': 5, '1h': 60, '1d': 1440 };
       const kInterval = tfMap[currentTF] || 5;
-      const kd = await fetchExternalJson(`${KRAKEN_BASE}/OHLC?pair=XBTJPY&interval=${kInterval}`);
+      const kPair = isShortTerm ? 'XBTUSD' : 'XBTJPY';
+      
+      const kd = await fetchExternalJson(`${KRAKEN_BASE}/OHLC?pair=${kPair}&interval=${kInterval}`);
       if (!kd.error || !kd.error.length) {
         const pairKey = Object.keys(kd.result).find(k => k !== 'last');
         const rawKlines = kd.result[pairKey];
-        // Gap-fill: limit to max 20 gaps to avoid flat-candle pollution
+        
+        let rate = 1;
+        if (isShortTerm) {
+          const latestUsdPrice = parseFloat(rawKlines[rawKlines.length - 1][4]);
+          if (currentPrice && latestUsdPrice) {
+            rate = currentPrice / latestUsdPrice;
+            currentUsdJpyRate = rate;
+          } else {
+            rate = currentUsdJpyRate;
+          }
+        }
+
         const intervalSec = kInterval * 60;
         const paddedKlines = [];
         let prev = rawKlines[0];
@@ -1646,9 +1666,14 @@ async function fetchHistory() {
           prev = curr;
         }
         const sampled = paddedKlines.slice(-100);
-        priceHistory = sampled.map(k => parseFloat(k[4]));
+        priceHistory = sampled.map(k => parseFloat(k[4]) * rate);
         volumeHistory = sampled.map(k => parseFloat(k[6]));
-        ohlcHistory = sampled.map(k => ({ open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]) }));
+        ohlcHistory = sampled.map(k => ({ 
+          open: parseFloat(k[1]) * rate, 
+          high: parseFloat(k[2]) * rate, 
+          low: parseFloat(k[3]) * rate, 
+          close: parseFloat(k[4]) * rate 
+        }));
         const labels = sampled.map(k => {
           const dt = new Date(k[0] * 1000);
           if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
@@ -1663,7 +1688,6 @@ async function fetchHistory() {
       }
     } catch (e2) { console.warn('Kraken OHLC fallback failed:', e2); }
 
-    // Cache fallback
     let stepMs = { '1m': 60000, '5m': 300000, '1h': 3600000, '1d': 86400000 }[currentTF] || 300000;
     if (currentPrice) {
       const previousPrice = Array.isArray(priceHistory) && priceHistory.length ? priceHistory.slice(-79) : buildFallbackHistory(currentPrice).slice(-79);
@@ -1707,7 +1731,6 @@ async function fetchHistory() {
   }
 }
 
-
 function updateOrderBook(bids, asks) {
   const buyEl = document.getElementById('depth-buys');
   const sellEl = document.getElementById('depth-sells');
@@ -1723,15 +1746,13 @@ function updateOrderBook(bids, asks) {
 }
 
 function initWebSocket() {
-  // Bybit Public WebSocket for real-time BTC/JPY price
   if (ws) { ws.onclose = null; try { ws.close(); } catch(e) {} }
   const wsBadge = document.getElementById('ws-status');
 
   ws = new WebSocket('wss://stream.bybit.com/v5/public/spot');
 
   ws.onopen = () => {
-    // Subscribe to BTCJPY ticker
-    ws.send(JSON.stringify({ op: 'subscribe', args: ['tickers.BTCJPY'] }));
+    ws.send(JSON.stringify({ op: 'subscribe', args: ['tickers.BTCJPY', 'orderbook.50.BTCJPY'] }));
     if (wsBadge) wsBadge.classList.add('ws-active');
   };
 
@@ -1757,7 +1778,6 @@ function initWebSocket() {
           if (price < last.low) last.low = price;
         }
 
-        // Flash animation on metric card
         const priceMetric = document.querySelector('.metric:first-child');
         if (priceMetric) {
           priceMetric.classList.remove('flash-up', 'flash-down');
@@ -1774,19 +1794,22 @@ function initWebSocket() {
             throttleTimer = null;
           }, 1000);
         }
+      } else if (data.topic === 'orderbook.50.BTCJPY' && data.data) {
+        const bids = data.data.b.slice(0, 10).map(x => [parseFloat(x[0]), parseFloat(x[1])]);
+        const asks = data.data.a.slice(0, 10).map(x => [parseFloat(x[0]), parseFloat(x[1])]);
+        if(bids.length > 0 || asks.length > 0) updateOrderBook(bids, asks);
       }
-    } catch (e) { /* ignore parse errors */ }
+    } catch (e) {}
   };
 
   ws.onclose = () => {
     if (wsBadge) wsBadge.classList.remove('ws-active');
-    if (activePriceSource === 'Bybit WS') activePriceSource = 'Bybit';
+    if (activePriceSource === 'Bybit WS') activePriceSource = 'Bybit API';
     clearTimeout(wsReconnectTimer);
     wsReconnectTimer = setTimeout(initWebSocket, 8000);
   };
   ws.onerror = () => { if (wsBadge) wsBadge.classList.remove('ws-active'); };
 }
-
 
 function logCurrentTrade(triggerType) {
   if (!latestStats.price) { showToast('データがまだありません'); return; }
@@ -1895,6 +1918,7 @@ async function refreshAll() { await fetchPrice(); await fetchHistory(); }
 
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
+  // 60秒ごとに履歴（ローソク足）も再取得し、新しい足を追加する
   refreshTimer = setInterval(() => {
     fetchPrice();
     fetchHistory(); 
