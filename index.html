@@ -639,66 +639,6 @@ window.addServerAlert = async function() {
     localStorage.setItem('btc_discord_url', target); // 次回から自動入力させる
   }
 
-  const dir = document.getElementById('alert-dir').value;
-  const price = parseFloat(document.getElementById('alert-price').value);
-  if (!price || isNaN(price) || price <= 0) { showToast('価格を正しく入力してください'); return; }
-
-  const btn = document.getElementById('btn-add-alert');
-  btn.textContent = '送信中...';
-  btn.disabled = true;
-
-  try {
-    // GASへ method（手段）と target（宛先）も一緒に送信
-    await fetch(GAS_URL, {
-      method: 'POST',
-      body: JSON.stringify({ method: method, target: target, dir: dir, price: price }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
-    });
-
-    // 画面のリストに追加（アイコン付き）
-    const methodIcon = method === 'push' ? '📱' : method === 'line' ? '💬' : '🎮';
-    alerts.push({ dir, price, id: Date.now(), triggered: false, icon: methodIcon });
-    saveAlerts();
-    renderAlerts();
-    document.getElementById('alert-price').value = '';
-    showToast(`✅ ${method.toUpperCase()} アラートを登録しました！`);
-  } catch (e) {
-    showToast('❌ 登録に失敗しました。');
-    console.error(e);
-  } finally {
-    btn.textContent = '＋ 追加';
-    btn.disabled = false;
-  }
-}
-  const dir = document.getElementById('alert-dir').value;
-  const price = parseFloat(document.getElementById('alert-price').value);
-  if (!price || isNaN(price) || price <= 0) { showToast('価格を正しく入力してください'); return; }
-
-  const btn = document.getElementById('btn-add-alert');
-  btn.textContent = '送信中...';
-  btn.disabled = true;
-
-  try {
-    await fetch(GAS_URL, {
-      method: 'POST',
-      body: JSON.stringify({ userId: window.fcmToken, dir: dir, price: price }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
-    });
-
-    alerts.push({ dir, price, id: Date.now(), triggered: false });
-    saveAlerts();
-    renderAlerts();
-    document.getElementById('alert-price').value = '';
-    showToast('✅ サーバーに登録しました！(アプリを閉じても監視されます)');
-  } catch (e) {
-    showToast('❌ 登録に失敗しました。');
-    console.error(e);
-  } finally {
-    btn.textContent = '＋ 追加';
-    btn.disabled = false;
-  }
-}
-
 function buildFallbackHistory(basePrice = 10450000) {
   const raw = Array.from({ length: 96 }, (_, i) => {
     const trend = (i - 47) * 160;
