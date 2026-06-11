@@ -565,6 +565,23 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+window.toggleAlertTarget = function() {
+  const method = document.getElementById('alert-method').value;
+  const targetInput = document.getElementById('alert-target');
+  
+  if (method === 'push') {
+    targetInput.style.display = 'none';
+  } else if (method === 'line') {
+    targetInput.style.display = 'block';
+    targetInput.placeholder = 'LINEのユーザーID (Uから始まる文字列)';
+    targetInput.value = localStorage.getItem('btc_line_id') || ''; // 過去の入力を記憶
+  } else if (method === 'discord') {
+    targetInput.style.display = 'block';
+    targetInput.placeholder = 'DiscordのWebhook URL';
+    targetInput.value = localStorage.getItem('btc_discord_url') || ''; // 過去の入力を記憶
+  }
+};
+  
 // 🔴 GASのURL（設定済み）
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbx1eWn7CPcr8qQSHe9ScfBX-Mn8uuNbr1e7hPxpEKZOdYtVFVrHh0XOhKO1ucCFYZOw/exec';
 
@@ -605,10 +622,54 @@ const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
 const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 
 window.addServerAlert = async function() {
-  if (!window.fcmToken) {
-    showToast('先に上のボタンからプッシュ通知を許可してください。');
-    return;
+  const method = document.getElementById('alert-method').value;
+  let target = '';
+
+  // 通知手段ごとに必要な宛先（target）を準備する
+  if (method === 'push') {
+    if (!window.fcmToken) { showToast('プッシュ通知を許可してください'); return; }
+    target = window.fcmToken;
+  } else if (method === 'line') {
+    target = document.getElementById('alert-target').value.trim();
+    if (!target) { showToast('LINEユーザーIDを入力してください'); return; }
+    localStorage.setItem('btc_line_id', target); // 次回から自動入力させる
+  } else if (method === 'discord') {
+    target = document.getElementById('alert-target').value.trim();
+    if (!target) { showToast('DiscordのWebhook URLを入力してください'); return; }
+    localStorage.setItem('btc_discord_url', target); // 次回から自動入力させる
   }
+
+  const dir = document.getElementById('alert-dir').value;
+  const price = parseFloat(document.getElementById('alert-price').value);
+  if (!price || isNaN(price) || price <= 0) { showToast('価格を正しく入力してください'); return; }
+
+  const btn = document.getElementById('btn-add-alert');
+  btn.textContent = '送信中...';
+  btn.disabled = true;
+
+  try {
+    // GASへ method（手段）と target（宛先）も一緒に送信
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ method: method, target: target, dir: dir, price: price }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+    });
+
+    // 画面のリストに追加（アイコン付き）
+    const methodIcon = method === 'push' ? '📱' : method === 'line' ? '💬' : '🎮';
+    alerts.push({ dir, price, id: Date.now(), triggered: false, icon: methodIcon });
+    saveAlerts();
+    renderAlerts();
+    document.getElementById('alert-price').value = '';
+    showToast(`✅ ${method.toUpperCase()} アラートを登録しました！`);
+  } catch (e) {
+    showToast('❌ 登録に失敗しました。');
+    console.error(e);
+  } finally {
+    btn.textContent = '＋ 追加';
+    btn.disabled = false;
+  }
+}
   const dir = document.getElementById('alert-dir').value;
   const price = parseFloat(document.getElementById('alert-price').value);
   if (!price || isNaN(price) || price <= 0) { showToast('価格を正しく入力してください'); return; }
@@ -1882,6 +1943,7 @@ function renderAlerts() {
   el.innerHTML = alerts.map(a => `
     <div class="alert-item ${a.triggered ? 'alert-triggered' : ''}">
       <div class="alert-left">
+        <span>${a.icon || '📱'}</span>
         <span class="alert-dir ${a.dir}">${a.dir === 'above' ? '↑ 上回ったら' : '↓ 下回ったら'}</span>
         <span style="font-weight:500;">${fmt(a.price)}</span>
         ${a.triggered ? '<span style="font-size:11px;color:var(--text3);">✓ 発動済み</span>' : ''}
