@@ -523,7 +523,13 @@
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+        // 👇 ここがGitHub Pages用の超重要修正！明示的にファイルの場所を教える
+        const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+        const token = await getToken(messaging, { 
+          vapidKey: VAPID_KEY,
+          serviceWorkerRegistration: registration // ← これを追加
+        });
+        
         if (token) {
           window.fcmToken = token;
           document.getElementById('push-status').textContent = '✅ プッシュ通知スタンバイOK';
@@ -1604,50 +1610,94 @@ function applyPriceData(btc, source = 'live') {
   checkAlerts(currentPrice);
 }
 
+// ✅ プロキシ不要！Kraken公式APIから直接現在価格を取得
 async function fetchPrice() {
-  if(activePriceSource === 'Binance WS') return;
-
+  if (activePriceSource === 'Binance WS') return;
   try {
-    const data = await fetchExternalJson(`${API_BASE}/ticker/24hr?symbol=BTCJPY`);
-    if (!data || !data.lastPrice) throw new Error('no data');
+    const res = await fetch('https://api.kraken.com/0/public/Ticker?pair=XXBTZJPY');
+    if (!res.ok) throw new Error('Network response was not ok');
+    const json = await res.json();
+    const data = json.result.XXBTZJPY;
+    
+    const price = parseFloat(data.c[0]);
     const btc = {
-      jpy: parseFloat(data.lastPrice),
-      jpy_24h_change: parseFloat(data.priceChangePercent),
-      jpy_24h_vol: parseFloat(data.quoteVolume),
-      jpy_24h_high: parseFloat(data.highPrice),
-      jpy_24h_low: parseFloat(data.lowPrice)
+      jpy: price,
+      jpy_24h_change: 0, // Kraken Tickerには24h変動率がないため0固定
+      jpy_24h_vol: parseFloat(data.v[1]),
+      jpy_24h_high: parseFloat(data.h[1]),
+      jpy_24h_low: parseFloat(data.l[1])
     };
-    activePriceSource = 'Binance API';
+    
+    activePriceSource = 'Kraken API';
     writeCache(PRICE_CACHE_KEY, { btc });
     applyPriceData(btc, 'live');
   } catch (e) {
-    console.error('Binance fetchPrice error:', e);
+    console.error('Kraken fetchPrice error:', e);
     const cached = readCache(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE);
     if (cached && cached.btc) { activePriceSource = 'キャッシュ'; applyPriceData(cached.btc, 'cached'); return; }
     activePriceSource = '参考値'; applyPriceData(FALLBACK_PRICE, 'fallback');
   }
 }
 
+// ✅ プロキシ不要！Kraken公式APIから直接チャート履歴を取得
 async function fetchHistory() {
-  const tfMap = { '1m': '1m', '5m': '5m', '1h': '1h', '1d': '1d' };
-  const interval = tfMap[currentTF] || '5m';
-  const isShortTerm = (currentTF === '1m' || currentTF === '5m');
-  const symbol = isShortTerm ? 'BTCUSDT' : 'BTCJPY';
+  const intervalMap = { '1m': 1, '5m': 5, '1h': 60, '1d': 1440 };
+  const minutes = intervalMap[currentTF] || 5;
 
   try {
-    const data = await fetchExternalJson(`${API_BASE}/klines?symbol=${symbol}&interval=${interval}&limit=100`);
-    if (!data || !data.length) throw new Error('no prices');
+    const res = await fetch(`https://api.kraken.com/0/public/OHLC?pair=XXBTZJPY&interval=${minutes}`);
+    if (!res.ok) throw new Error('Network response was not ok');
+    const json = await res.json();
+    const data = json.result.XXBTZJPY; // [time, open, high, low, close, vwap, volume, count]
 
-    let rate = 1;
-    if (isShortTerm) {
-      const latestUsdtPrice = parseFloat(data[data.length - 1][4]);
-      if (currentPrice && latestUsdtPrice) {
-        rate = currentPrice / latestUsdtPrice;
-        currentUsdJpyRate = rate;
-      } else {
-        rate = currentUsdJpyRate;
-      }
+    priceHistory = data.map(k => parseFloat(k[4]));
+    volumeHistory = data.map(k => parseFloat(k[6]));
+    ohlcHistory = data.map(k => ({
+      open: parseFloat(k[1]),
+      high: parseFloat(k[2]),
+      low: parseFloat(k[3]),
+      close: parseFloat(k[4])
+    }));
+
+    const labels = data.map(k => {
+      const dt = new Date(k[0] * 1000); // Krakenは秒単位のUNIXタイムスタンプ
+      if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
+      return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+    });
+    candleLabels = labels;
+
+    writeCache(HISTORY_CACHE_KEY + '_' + currentTF, { priceHistory, volumeHistory, ohlcHistory, labels });
+    renderPriceChart(labels); renderCandlestickChart(); renderMacdChart();
+    usingFallbackHistory = false; usingCachedHistory = false;
+    updateDataBanner(); updateIndicators(); updateSafetyPanel();
+  } catch (e) {
+    console.error('fetchHistory error:', e);
+    // エラー時はキャッシュまたは参考値へフォールバック（以前のコードのまま）
+    const cached = readCache(HISTORY_CACHE_KEY + '_' + currentTF, HISTORY_CACHE_MAX_AGE);
+    if (cached && Array.isArray(cached.priceHistory) && cached.priceHistory.length && Array.isArray(cached.labels)) {
+      priceHistory = cached.priceHistory; candleLabels = cached.labels;
+      if (cached.volumeHistory) volumeHistory = cached.volumeHistory;
+      if (cached.ohlcHistory) ohlcHistory = cached.ohlcHistory;
+      renderPriceChart(cached.labels); renderCandlestickChart(); renderMacdChart();
+      usingFallbackHistory = false; usingCachedHistory = true;
+      updateDataBanner(); updateIndicators(); updateSafetyPanel();
+      return;
     }
+    priceHistory = buildFallbackHistory(currentPrice || FALLBACK_PRICE.jpy);
+    volumeHistory = priceHistory.map(() => 0);
+    ohlcHistory = priceHistory.map(p => ({open: p, high: p*1.001, low: p*0.999, close: p}));
+    const stepMs = intervalMap[currentTF] * 60000;
+    const labels = priceHistory.map((_, i) => {
+      const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * stepMs);
+      if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
+      return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+    });
+    candleLabels = labels;
+    renderPriceChart(labels); renderCandlestickChart(); renderMacdChart();
+    usingFallbackHistory = true; usingCachedHistory = false;
+    updateDataBanner(); updateIndicators(); updateSafetyPanel();
+  }
+}
 
     priceHistory = data.map(k => parseFloat(k[4]) * rate);
     volumeHistory = data.map(k => parseFloat(k[5]));
