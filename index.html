@@ -700,7 +700,13 @@ window.addServerAlert = async function() {
       price: String(price),
       target
     }).toString();
-    await fetch(`${GAS_URL}?${query}`, { cache: 'no-store' });
+
+    await fetch(`${GAS_URL}?${query}`, {
+      method: 'GET',
+      mode: 'no-cors',
+      cache: 'no-store'
+    });
+
     showToast('アラートを追加しました');
   } catch (error) {
     console.error('Alert save failed:', error);
