@@ -505,6 +505,8 @@
 <div class="footer">※ Binance API / WS より取得。投資アドバイスではありません。</div>
 <div class="toast" id="toast"></div>
 
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
@@ -569,25 +571,45 @@ if ('serviceWorker' in navigator) {
 window.toggleAlertTarget = function() {
   const method = document.getElementById('alert-method').value;
   const targetInput = document.getElementById('alert-target');
-  const lineNote = document.getElementById('line-note');
-
+  
   if (method === 'push') {
     targetInput.style.display = 'none';
-    if (lineNote) lineNote.style.display = 'none';
   } else if (method === 'line') {
-    targetInput.style.display = 'none';
-    if (lineNote) lineNote.style.display = 'block';
+    if (liffUserId) {
+      // 🎯 LIFFで自動取得できている場合は入力欄を出さずに通知する
+      targetInput.style.display = 'none';
+      showToast('✅ LINE連携: IDを自動取得しました！');
+    } else {
+      // ブラウザ等で開いていて取得できなかった場合は今まで通り手入力
+      targetInput.style.display = 'block';
+      targetInput.placeholder = 'LINEのユーザーID (Uから始まる文字列)';
+      targetInput.value = localStorage.getItem('btc_line_id') || ''; 
+    }
   } else if (method === 'discord') {
     targetInput.style.display = 'block';
     targetInput.placeholder = 'DiscordのWebhook URL';
-    targetInput.value = localStorage.getItem('btc_discord_url') || '';
-    if (lineNote) lineNote.style.display = 'none';
+    targetInput.value = localStorage.getItem('btc_discord_url') || ''; 
   }
 };
   
 // 🔴 GASのURL（設定済み）
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbx1eWn7CPcr8qQSHe9ScfBX-Mn8uuNbr1e7hPxpEKZOdYtVFVrHh0XOhKO1ucCFYZOw/exec';
+// 🔴 ステップ1で取得したLIFF IDをここに貼り付けます
+const LIFF_ID = "2010358576-YfJ4msXp";
+let liffUserId = ""; // 自動取得したIDを入れる箱
 
+// LIFFを起動して裏側でLINE IDを取得する関数
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      liffUserId = profile.userId; // 🎯 ここでIDを自動取得！
+    }
+  } catch (err) {
+    console.error('LIFF init failed', err);
+  }
+}
 // ✅ 最強のBinance API（LINEバージョンの時の設定）に完全に戻しました
 const API_BASE = 'https://api.binance.com/api/v3';
 
@@ -625,10 +647,26 @@ const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
 const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 
 window.addServerAlert = async function() {
+  // window.addServerAlert = async function() { の直後の部分を書き換え
   const method = document.getElementById('alert-method').value;
-  const dir = document.getElementById('alert-dir').value;
-  const price = Number(document.getElementById('alert-price').value);
   let target = '';
+
+  if (method === 'push') {
+    if (!window.fcmToken) { showToast('プッシュ通知を許可してください'); return; }
+    target = window.fcmToken;
+  } else if (method === 'line') {
+    if (liffUserId) {
+      target = liffUserId; // 🎯 自動取得したIDを使う！
+    } else {
+      target = document.getElementById('alert-target').value.trim();
+      if (!target) { showToast('LINEユーザーIDを入力してください'); return; }
+      localStorage.setItem('btc_line_id', target);
+    }
+  } else if (method === 'discord') {
+    target = document.getElementById('alert-target').value.trim();
+    if (!target) { showToast('DiscordのWebhook URLを入力してください'); return; }
+    localStorage.setItem('btc_discord_url', target);
+  }
 
   if (!Number.isFinite(price) || price <= 0) {
     showToast('価格を入力してください');
@@ -1970,6 +2008,7 @@ window.addEventListener('load', () => {
   initWebSocket();
   refreshAll();
   startAutoRefresh();
+  initLiff();
 });
 </script>
 
