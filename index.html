@@ -9,7 +9,6 @@
 <meta name="theme-color" content="#ffffff">
 <link rel="apple-touch-icon" href="icon-192.png">
 
-<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   .depth-container { display: flex; height: 160px; gap: 4px; padding: 10px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 12px; }
@@ -89,13 +88,11 @@
   .ma-val { font-weight: 500; color: var(--text); }
   
   .alert-form { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-  .alert-form select, .alert-form input[type=text], .alert-form input[type=number] { font-size: 13px; padding: 6px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; }
+  .alert-form select, .alert-form input[type=number] { font-size: 13px; padding: 6px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; }
   .alert-form select { min-width: 130px; }
   .alert-form input[type=number] { flex: 1; min-width: 140px; }
   .alert-form input::placeholder { color: var(--text3); }
-  .webhook-field { width: 100%; margin-bottom: 12px; display: flex; }
-  .webhook-field input { width: 100%; font-size: 12px; }
-
+  
   .alert-list { display: flex; flex-direction: column; gap: 6px; }
   .alert-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); border-radius: var(--radius); padding: 8px 12px; font-size: 13px; }
   .alert-left { display: flex; align-items: center; gap: 8px; }
@@ -471,8 +468,10 @@
 </div>
 
 <div class="card">
-  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">🔔 価格アラート (サーバー24時間監視)</span></div>
-  <div class="risk-note" style="margin-top: 0; margin-bottom: 12px; font-weight: bold; color: var(--blue);" id="line-status">LINE情報取得中...</div>
+  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">🔔 プッシュ通知設定 (24時間監視)</span></div>
+  <div class="risk-note" style="margin-top: 0; margin-bottom: 12px; font-weight: bold; color: var(--blue);" id="push-status">
+    <button class="btn" style="background:var(--blue);color:#fff;" onclick="requestPushPermission()">📲 まずはプッシュ通知を許可する</button>
+  </div>
   
   <div class="alert-form">
     <select id="alert-dir">
@@ -497,22 +496,72 @@
 <div class="footer">※ Binance API / WS より取得。投資アドバイスではありません。</div>
 <div class="toast" id="toast"></div>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
+
+  // 🔴 ここに「鍵①（firebaseConfig）」の中身を上書きしてください！
+  const firebaseConfig = {
+  apiKey: "AIzaSyADifxTaToaXXNOZe3eQy8vDvXazMYpnXo",
+  authDomain: "btc-alert-app.firebaseapp.com",
+  projectId: "btc-alert-app",
+  storageBucket: "btc-alert-app.firebasestorage.app",
+  messagingSenderId: "133245742001",
+  appId: "1:133245742001:web:57400351affca95901eb90",
+  measurementId: "G-KJ5BBLBESG"
+};
+
+  // 🔴 ここに「鍵②（VAPID_KEY）」を貼り付けてください！
+  const VAPID_KEY = "BGpquQOhcxTIAxIfdYW03Sga-NwAVdY6imdPCPldJha7KFZzB915tW65hGy6j4-tsJAve-ZoiYp_5f5U0GbVy4k";
+
+  const app = initializeApp(firebaseConfig);
+  const messaging = getMessaging(app);
+
+  window.fcmToken = null;
+
+  window.requestPushPermission = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+        if (token) {
+          window.fcmToken = token;
+          document.getElementById('push-status').textContent = '✅ プッシュ通知スタンバイOK';
+          document.getElementById('push-status').style.color = 'var(--green)';
+          showToast('通知の許可を取得しました！');
+        } else {
+          showToast('トークンの取得に失敗しました。');
+        }
+      } else {
+        showToast('通知がブロックされています。ブラウザの設定から許可してください。');
+      }
+    } catch (error) {
+      console.error('Error getting token', error);
+      showToast('エラーが発生しました: ' + error.message);
+    }
+  };
+
+  // アプリを開いている時に通知が来た場合の処理
+  onMessage(messaging, (payload) => {
+    showToast(`🔔 ${payload.notification.title}: ${payload.notification.body}`);
+  });
+</script>
+
 <script>
+// PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed: ', err));
+    // ⚠️ 以前のsw.jsではなく、Firebase対応の新しい名前に変更
+    navigator.serviceWorker.register('firebase-messaging-sw.js')
+      .catch(err => console.log('SW registration failed: ', err));
   });
 }
 
-// 🔴 ここに先ほど作成した「LIFF ID」を貼り付けてください！
-const LIFF_ID = '2010358576-YfJ4msXp';
-
-// あなたが作ったGoogle Apps ScriptのURL
+// 🔴 GASのURL（先日作成したもの）
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbx1eWn7CPcr8qQSHe9ScfBX-Mn8uuNbr1e7hPxpEKZOdYtVFVrHh0XOhKO1ucCFYZOw/exec';
 
 const API_BASE = 'https://api.binance.com/api/v3';
 
-let liffUserId = null;
 let priceHistory = [];
 let volumeHistory = [];
 let ohlcHistory = []; 
@@ -546,30 +595,10 @@ const PRED_TOGGLE_KEY = 'btc_show_pred_band';
 const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
 const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 
-// ✅ LINE LIFFの初期化処理
-async function initLiff() {
-  try {
-    await liff.init({ liffId: LIFF_ID });
-    if (liff.isLoggedIn()) {
-      const profile = await liff.getProfile();
-      liffUserId = profile.userId;
-      document.getElementById('line-status').textContent = '✅ LINE連携完了 (' + profile.displayName + ')';
-      document.getElementById('line-status').style.color = 'var(--green)';
-    } else {
-      document.getElementById('line-status').innerHTML = '<button class="btn" style="background:var(--green);color:#fff;" onclick="liff.login()">LINEでログインして通知を有効化</button>';
-      document.getElementById('line-status').style.color = 'var(--text2)';
-    }
-  } catch(e) {
-    console.error('LIFF Init Error', e);
-    document.getElementById('line-status').textContent = '⚠️ LINE連携エラー (LIFF IDの設定を確認してください)';
-    document.getElementById('line-status').style.color = 'var(--red)';
-  }
-}
-
-// ✅ サーバー(GAS)へアラート設定を送信する処理
-async function addServerAlert() {
-  if (!liffUserId) {
-    showToast('LINE連携が完了していません。LINEから開くかログインしてください。');
+// ✅ サーバー(GAS)へFCMトークンとアラート設定を送信する処理
+window.addServerAlert = async function() {
+  if (!window.fcmToken) {
+    showToast('先に上のボタンからプッシュ通知を許可してください。');
     return;
   }
   const dir = document.getElementById('alert-dir').value;
@@ -583,16 +612,15 @@ async function addServerAlert() {
   try {
     await fetch(GAS_URL, {
       method: 'POST',
-      body: JSON.stringify({ userId: liffUserId, dir: dir, price: price }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' } // CORS回避のための特殊設定
+      body: JSON.stringify({ userId: window.fcmToken, dir: dir, price: price }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
     });
 
-    // ローカルUIの表示も更新
     alerts.push({ dir, price, id: Date.now(), triggered: false });
     saveAlerts();
     renderAlerts();
     document.getElementById('alert-price').value = '';
-    showToast('✅ サーバーにアラートを登録しました！(ブラウザを閉じても監視されます)');
+    showToast('✅ サーバーに登録しました！(アプリを閉じても監視されます)');
   } catch (e) {
     showToast('❌ 登録に失敗しました。');
     console.error(e);
@@ -600,19 +628,6 @@ async function addServerAlert() {
     btn.textContent = '＋ 追加';
     btn.disabled = false;
   }
-}
-
-function buildFallbackHistory(basePrice = 10450000) {
-  const raw = Array.from({ length: 96 }, (_, i) => {
-    const trend = (i - 47) * 160;
-    const wave = Math.sin(i / 8) * 12000 + Math.cos(i / 18) * 5000;
-    return basePrice + trend + wave;
-  });
-  return raw.map((value, i, arr) => {
-    const prev = arr[Math.max(0, i - 1)];
-    const next = arr[Math.min(arr.length - 1, i + 1)];
-    return (prev + value + next) / 3;
-  });
 }
 
 function fmt(n) { return !n && n !== 0 ? '--' : '¥' + Math.round(n).toLocaleString('ja-JP'); }
@@ -1547,11 +1562,13 @@ function renderMacdChart() {
 }
 
 async function fetchExternalJson(url, retries = 1) {
+  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+  
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+      const res = await fetch(proxyUrl, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (e) {
@@ -1844,7 +1861,7 @@ function renderAlerts() {
   `).join('');
 }
 
-// 画面表示用のローカルチェック（LINE送信はサーバー側が行います）
+// 画面表示用のローカルチェック（プッシュ送信はサーバー側が行います）
 function checkAlerts(price) {
   let triggered = false;
   alerts.forEach(a => {
@@ -1883,7 +1900,6 @@ function startAutoRefresh() {
 
 // init
 window.addEventListener('load', () => {
-  initLiff();
   loadRiskSettings();
   loadTradeMode();
   renderAlerts();
