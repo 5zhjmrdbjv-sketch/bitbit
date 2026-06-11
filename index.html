@@ -1955,6 +1955,7 @@ window.addEventListener('load', () => {
   window.fcmToken = null;
 
   window.requestPushPermission = async () => {
+    alert("読み込んでいるVAPIDキー: [" + VAPID_KEY + "]");
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
