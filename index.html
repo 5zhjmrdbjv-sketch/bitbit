@@ -11,6 +11,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
+
+/* ✅ ここからタブ用のCSSを追加 */
+  .method-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .method-tab { flex: 1; text-align: center; font-size: 12px; font-weight: 500; padding: 10px 4px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text2); cursor: pointer; transition: all 0.2s; user-select: none; }
+  .method-tab.active { background: var(--blue-bg); color: var(--blue); border-color: var(--blue); }
+  
   .depth-container { display: flex; height: 160px; gap: 4px; padding: 10px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 12px; }
   .depth-side { flex: 1; display: flex; flex-direction: column-reverse; gap: 1px; }
   .depth-bar { height: 12px; font-size: 8px; color: #fff; display: flex; align-items: center; padding: 0 4px; transition: width 0.3s; }
@@ -468,10 +474,33 @@
 </div>
 
 <div class="card">
-  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">🔔 プッシュ通知設定 (24時間監視)</span></div>
-  <div class="risk-note" style="margin-top: 0; margin-bottom: 12px; font-weight: bold; color: var(--blue);" id="push-status">
-    <button class="btn" style="background:var(--blue);color:#fff;" onclick="requestPushPermission()">📲 まずはプッシュ通知を許可する</button>
+  <div class="card-header" style="margin-bottom:10px;"><span class="card-title">🔔 アラート通知設定 (24時間監視)</span></div>
+  
+  <div class="method-tabs">
+    <div class="method-tab active" id="tab-push" onclick="selectAlertMethod('push')">📱 Push通知</div>
+    <div class="method-tab" id="tab-line" onclick="selectAlertMethod('line')">💬 LINE</div>
+    <div class="method-tab" id="tab-discord" onclick="selectAlertMethod('discord')">🎮 Discord</div>
   </div>
+  
+  <div class="alert-form" style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+    <select id="alert-dir">
+      <option value="above">↑ 上回ったら</option>
+      <option value="below">↓ 下回ったら</option>
+    </select>
+    <input type="text" inputmode="numeric" id="alert-price" placeholder="価格 (例: 15000000)" />
+    <input type="text" id="alert-target" placeholder="DiscordのWebhook URL" style="display: none;" />
+    
+    <div id="method-status" class="risk-note" style="margin: 0; color: var(--text2);">
+      👆 まずは上の「📱 Push通知」タブをタップして許可してください。
+    </div>
+    
+    <button class="btn" onclick="addServerAlert()" style="background: var(--blue); color: #fff; font-weight: bold; padding: 8px;" id="btn-add-alert">＋ 追加</button>
+  </div>
+  
+  <div class="alert-list" id="alert-list" style="margin-top: 12px;">
+    <div class="empty-hint">アラートはまだ設定されていません</div>
+  </div>
+</div>
   
   <div class="alert-form" style="display: grid; grid-template-columns: 1fr; gap: 8px;">
     <div style="display: flex; gap: 8px;">
@@ -541,8 +570,12 @@
         });
         if (token) {
           window.fcmToken = token;
-          document.getElementById('push-status').textContent = '✅ プッシュ通知スタンバイOK';
-          document.getElementById('push-status').style.color = 'var(--green)';
+          // 👇 ここがタブUIに合わせた新しい表示処理
+          const statusMsg = document.getElementById('method-status');
+          if (statusMsg) {
+             statusMsg.textContent = '✅ プッシュ通知スタンバイOK';
+             statusMsg.style.color = 'var(--green)';
+          }
           showToast('通知の許可を取得しました！');
         } else {
           showToast('トークンの取得に失敗しました。');
@@ -569,37 +602,128 @@ if ('serviceWorker' in navigator) {
 }
 
 // ② セレクトボックスが変更された「瞬間」に認証をかける関数
-window.toggleAlertTarget = async function() {
-  const method = document.getElementById('alert-method').value;
+// 🎯 追加：現在選択されているタブを記憶する変数
+let currentAlertMethod = 'push';
+
+// ✅ 新機能：タブをタップした瞬間に、見た目の変更と同時に「許可・認証」を走らせる関数！
+window.selectAlertMethod = async function(method) {
+  currentAlertMethod = method;
+  
+  // タブの見た目切り替え
+  document.getElementById('tab-push').classList.toggle('active', method === 'push');
+  document.getElementById('tab-line').classList.toggle('active', method === 'line');
+  document.getElementById('tab-discord').classList.toggle('active', method === 'discord');
+
   const targetInput = document.getElementById('alert-target');
+  const statusMsg = document.getElementById('method-status');
   
   if (method === 'push') {
     targetInput.style.display = 'none';
+    if (!window.fcmToken) {
+      statusMsg.textContent = '許可をリクエスト中...';
+      statusMsg.style.color = 'var(--text2)';
+      // 📱 タブを押した瞬間に、スマホのプッシュ通知許可ポップアップを出す！
+      await window.requestPushPermission(); 
+    } else {
+      statusMsg.textContent = '✅ プッシュ通知スタンバイOK';
+      statusMsg.style.color = 'var(--green)';
+    }
+  } 
+  else if (method === 'line') {
+    targetInput.style.display = 'none';
     
-  } else if (method === 'line') {
-    // 🎯 ここで初めてログイン状態をチェック！
+    // 💬 タブを押した瞬間にLINEログインをチェックし、未認証なら即座に認証へ飛ばす！
     if (!liff.isLoggedIn()) {
-      // 認証画面に飛ぶ前に「LINEを選ぼうとしていた」ことをブラウザに記憶させる
       localStorage.setItem('return_to_line', 'true');
-      // LINEの認証画面へ飛ばす
       liff.login();
       return;
     }
     
-    // すでにログイン済みなら、IDをセットして入力欄を隠す
     if (!liffUserId) {
       const profile = await liff.getProfile();
       liffUserId = profile.userId;
     }
-    targetInput.style.display = 'none';
-    showToast('✅ LINE連携: 認証済みです！');
-    
-  } else if (method === 'discord') {
+    statusMsg.textContent = '✅ LINE連携: 認証済みです！';
+    statusMsg.style.color = 'var(--green)';
+  } 
+  else if (method === 'discord') {
     targetInput.style.display = 'block';
     targetInput.placeholder = 'DiscordのWebhook URL';
     targetInput.value = localStorage.getItem('btc_discord_url') || ''; 
+    statusMsg.textContent = '設定したWebhook URLへ通知を送ります。';
+    statusMsg.style.color = 'var(--text2)';
   }
 };
+
+// ✅ 修正：LINE認証から帰ってきたときに、自動で「LINEタブ」を押した状態に復帰させる
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      liffUserId = profile.userId; 
+      
+      // 認証画面から戻ってきた直後の場合、自動で「LINE」タブを選択して切り替える
+      if (localStorage.getItem('return_to_line') === 'true') {
+        localStorage.removeItem('return_to_line');
+        selectAlertMethod('line');
+      }
+    }
+  } catch (err) {
+    console.error('LIFF init failed', err);
+  }
+}
+
+// ✅ 修正：送信時に「今選択されているタブ（変数）」の中身を使うように変更
+window.addServerAlert = async function() {
+  const method = currentAlertMethod; // 👈 セレクトボックスではなく変数から取得
+  let target = '';
+
+  if (method === 'push') {
+    if (!window.fcmToken) { showToast('Pushタブをタップして通知を許可してください'); return; }
+    target = window.fcmToken;
+  } else if (method === 'line') {
+    if (liffUserId) {
+      target = liffUserId; 
+    } else {
+      showToast('LINE認証が完了していません'); return; 
+    }
+  } else if (method === 'discord') {
+    target = document.getElementById('alert-target').value.trim();
+    if (!target) { showToast('DiscordのWebhook URLを入力してください'); return; }
+    localStorage.setItem('btc_discord_url', target); 
+  }
+
+  const dir = document.getElementById('alert-dir').value;
+  const rawPriceStr = document.getElementById('alert-price').value;
+  const price = parseFloat(rawPriceStr.replace(/[^0-9.]/g, '')); 
+  if (!price || isNaN(price) || price <= 0) { showToast('価格を正しく入力してください'); return; }
+
+  const btn = document.getElementById('btn-add-alert');
+  btn.textContent = '送信中...';
+  btn.disabled = true;
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ method: method, target: target, dir: dir, price: price }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+    });
+
+    const methodIcon = method === 'push' ? '📱' : method === 'line' ? '💬' : '🎮';
+    alerts.push({ dir, price, id: Date.now(), triggered: false, icon: methodIcon });
+    saveAlerts();
+    renderAlerts();
+    document.getElementById('alert-price').value = '';
+    showToast(`✅ ${method.toUpperCase()} アラートを登録しました！`);
+  } catch (e) {
+    showToast('❌ 登録に失敗しました。');
+    console.error(e);
+  } finally {
+    btn.textContent = '＋ 追加';
+    btn.disabled = false;
+  }
+}
   
 // 🔴 GASのURL（設定済み）
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbx1eWn7CPcr8qQSHe9ScfBX-Mn8uuNbr1e7hPxpEKZOdYtVFVrHh0XOhKO1ucCFYZOw/exec';
