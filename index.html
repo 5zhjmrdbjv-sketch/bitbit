@@ -623,21 +623,49 @@ const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 
 window.addServerAlert = async function() {
   const method = document.getElementById('alert-method').value;
+  const dir = document.getElementById('alert-dir').value;
+  const price = Number(document.getElementById('alert-price').value);
   let target = '';
 
-  // 通知手段ごとに必要な宛先（target）を準備する
+  if (!Number.isFinite(price) || price <= 0) {
+    showToast('価格を入力してください');
+    return;
+  }
+
   if (method === 'push') {
     if (!window.fcmToken) { showToast('プッシュ通知を許可してください'); return; }
     target = window.fcmToken;
   } else if (method === 'line') {
     target = document.getElementById('alert-target').value.trim();
     if (!target) { showToast('LINEユーザーIDを入力してください'); return; }
-    localStorage.setItem('btc_line_id', target); // 次回から自動入力させる
+    localStorage.setItem('btc_line_id', target);
   } else if (method === 'discord') {
     target = document.getElementById('alert-target').value.trim();
     if (!target) { showToast('DiscordのWebhook URLを入力してください'); return; }
-    localStorage.setItem('btc_discord_url', target); // 次回から自動入力させる
+    localStorage.setItem('btc_discord_url', target);
   }
+
+  const icon = method === 'push' ? '📱' : method === 'line' ? '💬' : '🎮';
+  alerts.unshift({ id: Date.now(), method, dir, price, target, icon, triggered: false });
+  saveAlerts();
+  renderAlerts();
+
+  try {
+    const query = new URLSearchParams({
+      mode: 'add',
+      method,
+      dir,
+      price: String(price),
+      target
+    }).toString();
+    await fetch(`${GAS_URL}?${query}`, { cache: 'no-store' });
+    showToast('アラートを追加しました');
+  } catch (error) {
+    console.error('Alert save failed:', error);
+    showToast('アラートの保存に失敗しました');
+  }
+};
+
 
 function buildFallbackHistory(basePrice = 10450000) {
   const raw = Array.from({ length: 96 }, (_, i) => {
@@ -1940,8 +1968,6 @@ window.addEventListener('load', () => {
   refreshAll();
   startAutoRefresh();
 });
-</script>
-
 </script>
 
 </body>
