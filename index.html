@@ -599,13 +599,24 @@ const LIFF_ID = "2010358576-YfJ4msXp";
 let liffUserId = ""; // 自動取得したIDを入れる箱
 
 // LIFFを起動して裏側でLINE IDを取得する関数
+// LIFFを起動して裏側でLINE IDを確実に自動取得する関数（修正版）
 async function initLiff() {
   try {
     await liff.init({ liffId: LIFF_ID });
-    if (liff.isLoggedIn()) {
-      const profile = await liff.getProfile();
-      liffUserId = profile.userId; // 🎯 ここでIDを自動取得！
+    
+    // 🎯 1. ログインしていなければ、自動でLINEの認証画面に誘導する
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
     }
+    
+    // 🎯 2. ログイン成功後、プロフィールからLINE IDを自動取得
+    const profile = await liff.getProfile();
+    liffUserId = profile.userId; 
+    
+    // 🎯 3. IDが取れたら、即座に画面の入力欄の表示を切り替える
+    toggleAlertTarget();
+    
   } catch (err) {
     console.error('LIFF init failed', err);
   }
