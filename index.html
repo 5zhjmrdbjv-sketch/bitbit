@@ -502,17 +502,16 @@
 
   // 🔴 ここに「鍵①（firebaseConfig）」の中身を上書きしてください！
   const firebaseConfig = {
-  apiKey: "AIzaSyADifxTaToaXXNOZe3eQy8vDvXazMYpnXo",
-  authDomain: "btc-alert-app.firebaseapp.com",
-  projectId: "btc-alert-app",
-  storageBucket: "btc-alert-app.firebasestorage.app",
-  messagingSenderId: "133245742001",
-  appId: "1:133245742001:web:57400351affca95901eb90",
-  measurementId: "G-KJ5BBLBESG"
-};
+    apiKey: "AIzaSy...",
+    authDomain: "...",
+    projectId: "...",
+    storageBucket: "...",
+    messagingSenderId: "...",
+    appId: "..."
+  };
 
   // 🔴 ここに「鍵②（VAPID_KEY）」を貼り付けてください！
-  const VAPID_KEY = "BGpquQOhcxTIAxIfdYW03Sga-NwAVdY6imdPCPldJha7KFZzB915tW65hGy6j4-tsJAve-ZoiYp_5f5U0GbVy4k";
+  const VAPID_KEY = "ここに鍵②を貼り付けます";
 
   const app = initializeApp(firebaseConfig);
   const messaging = getMessaging(app);
@@ -523,13 +522,11 @@
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        // 👇 ここがGitHub Pages用の超重要修正！明示的にファイルの場所を教える
         const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
         const token = await getToken(messaging, { 
           vapidKey: VAPID_KEY,
-          serviceWorkerRegistration: registration // ← これを追加
+          serviceWorkerRegistration: registration
         });
-        
         if (token) {
           window.fcmToken = token;
           document.getElementById('push-status').textContent = '✅ プッシュ通知スタンバイOK';
@@ -547,25 +544,22 @@
     }
   };
 
-  // アプリを開いている時に通知が来た場合の処理
   onMessage(messaging, (payload) => {
     showToast(`🔔 ${payload.notification.title}: ${payload.notification.body}`);
   });
 </script>
 
 <script>
-// PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // ⚠️ 以前のsw.jsではなく、Firebase対応の新しい名前に変更
-    navigator.serviceWorker.register('firebase-messaging-sw.js')
-      .catch(err => console.log('SW registration failed: ', err));
+    navigator.serviceWorker.register('firebase-messaging-sw.js').catch(err => console.log('SW registration failed: ', err));
   });
 }
 
-// 🔴 GASのURL（先日作成したもの）
+// 🔴 GASのURL（設定済み）
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbx1eWn7CPcr8qQSHe9ScfBX-Mn8uuNbr1e7hPxpEKZOdYtVFVrHh0XOhKO1ucCFYZOw/exec';
 
+// ✅ 最強のBinance API（LINEバージョンの時の設定）に完全に戻しました
 const API_BASE = 'https://api.binance.com/api/v3';
 
 let priceHistory = [];
@@ -601,7 +595,6 @@ const PRED_TOGGLE_KEY = 'btc_show_pred_band';
 const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
 const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 
-// ✅ サーバー(GAS)へFCMトークンとアラート設定を送信する処理
 window.addServerAlert = async function() {
   if (!window.fcmToken) {
     showToast('先に上のボタンからプッシュ通知を許可してください。');
@@ -634,6 +627,19 @@ window.addServerAlert = async function() {
     btn.textContent = '＋ 追加';
     btn.disabled = false;
   }
+}
+
+function buildFallbackHistory(basePrice = 10450000) {
+  const raw = Array.from({ length: 96 }, (_, i) => {
+    const trend = (i - 47) * 160;
+    const wave = Math.sin(i / 8) * 12000 + Math.cos(i / 18) * 5000;
+    return basePrice + trend + wave;
+  });
+  return raw.map((value, i, arr) => {
+    const prev = arr[Math.max(0, i - 1)];
+    const next = arr[Math.min(arr.length - 1, i + 1)];
+    return (prev + value + next) / 3;
+  });
 }
 
 function fmt(n) { return !n && n !== 0 ? '--' : '¥' + Math.round(n).toLocaleString('ja-JP'); }
@@ -1567,21 +1573,27 @@ function renderMacdChart() {
   }
 }
 
+// ✅ 強化版プロキシ回避（Binance REST用）
 async function fetchExternalJson(url, retries = 1) {
-  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-  
+  const proxies = ['', 'https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?'];
   for (let attempt = 0; attempt <= retries; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    try {
-      const res = await fetch(proxyUrl, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (e) {
-      if (attempt < retries) { await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); continue; }
-      throw e;
-    } finally { clearTimeout(timeout); }
+    for (let prefix of proxies) {
+      const targetUrl = prefix ? prefix + encodeURIComponent(url) : url;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      try {
+        const res = await fetch(targetUrl, { headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } catch (e) {
+        // next proxy
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    if (attempt < retries) await new Promise(resolve => setTimeout(resolve, 1000));
   }
+  throw new Error('All fetch attempts failed');
 }
 
 function applyPriceData(btc, source = 'live') {
@@ -1610,94 +1622,52 @@ function applyPriceData(btc, source = 'live') {
   checkAlerts(currentPrice);
 }
 
-// ✅ プロキシ不要！Kraken公式APIから直接現在価格を取得
+// ✅ あの時の「最強の価格ロジック（Binance API）」に完全復活
 async function fetchPrice() {
-  if (activePriceSource === 'Binance WS') return;
+  if(activePriceSource === 'Binance WS') return;
+
   try {
-    const res = await fetch('https://api.kraken.com/0/public/Ticker?pair=XXBTZJPY');
-    if (!res.ok) throw new Error('Network response was not ok');
-    const json = await res.json();
-    const data = json.result.XXBTZJPY;
-    
-    const price = parseFloat(data.c[0]);
+    const data = await fetchExternalJson(`${API_BASE}/ticker/24hr?symbol=BTCJPY`);
+    if (!data || !data.lastPrice) throw new Error('no data');
     const btc = {
-      jpy: price,
-      jpy_24h_change: 0, // Kraken Tickerには24h変動率がないため0固定
-      jpy_24h_vol: parseFloat(data.v[1]),
-      jpy_24h_high: parseFloat(data.h[1]),
-      jpy_24h_low: parseFloat(data.l[1])
+      jpy: parseFloat(data.lastPrice),
+      jpy_24h_change: parseFloat(data.priceChangePercent),
+      jpy_24h_vol: parseFloat(data.quoteVolume),
+      jpy_24h_high: parseFloat(data.highPrice),
+      jpy_24h_low: parseFloat(data.lowPrice)
     };
-    
-    activePriceSource = 'Kraken API';
+    activePriceSource = 'Binance API';
     writeCache(PRICE_CACHE_KEY, { btc });
     applyPriceData(btc, 'live');
   } catch (e) {
-    console.error('Kraken fetchPrice error:', e);
+    console.error('Binance fetchPrice error:', e);
     const cached = readCache(PRICE_CACHE_KEY, PRICE_CACHE_MAX_AGE);
     if (cached && cached.btc) { activePriceSource = 'キャッシュ'; applyPriceData(cached.btc, 'cached'); return; }
     activePriceSource = '参考値'; applyPriceData(FALLBACK_PRICE, 'fallback');
   }
 }
 
-// ✅ プロキシ不要！Kraken公式APIから直接チャート履歴を取得
+// ✅ あの時の「最強のチャートロジック（USDT換算）」に完全復活
 async function fetchHistory() {
-  const intervalMap = { '1m': 1, '5m': 5, '1h': 60, '1d': 1440 };
-  const minutes = intervalMap[currentTF] || 5;
+  const tfMap = { '1m': '1m', '5m': '5m', '1h': '1h', '1d': '1d' };
+  const interval = tfMap[currentTF] || '5m';
+  const isShortTerm = (currentTF === '1m' || currentTF === '5m');
+  const symbol = isShortTerm ? 'BTCUSDT' : 'BTCJPY';
 
   try {
-    const res = await fetch(`https://api.kraken.com/0/public/OHLC?pair=XXBTZJPY&interval=${minutes}`);
-    if (!res.ok) throw new Error('Network response was not ok');
-    const json = await res.json();
-    const data = json.result.XXBTZJPY; // [time, open, high, low, close, vwap, volume, count]
+    const data = await fetchExternalJson(`${API_BASE}/klines?symbol=${symbol}&interval=${interval}&limit=100`);
+    if (!data || !data.length) throw new Error('no prices');
 
-    priceHistory = data.map(k => parseFloat(k[4]));
-    volumeHistory = data.map(k => parseFloat(k[6]));
-    ohlcHistory = data.map(k => ({
-      open: parseFloat(k[1]),
-      high: parseFloat(k[2]),
-      low: parseFloat(k[3]),
-      close: parseFloat(k[4])
-    }));
-
-    const labels = data.map(k => {
-      const dt = new Date(k[0] * 1000); // Krakenは秒単位のUNIXタイムスタンプ
-      if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
-      return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
-    });
-    candleLabels = labels;
-
-    writeCache(HISTORY_CACHE_KEY + '_' + currentTF, { priceHistory, volumeHistory, ohlcHistory, labels });
-    renderPriceChart(labels); renderCandlestickChart(); renderMacdChart();
-    usingFallbackHistory = false; usingCachedHistory = false;
-    updateDataBanner(); updateIndicators(); updateSafetyPanel();
-  } catch (e) {
-    console.error('fetchHistory error:', e);
-    // エラー時はキャッシュまたは参考値へフォールバック（以前のコードのまま）
-    const cached = readCache(HISTORY_CACHE_KEY + '_' + currentTF, HISTORY_CACHE_MAX_AGE);
-    if (cached && Array.isArray(cached.priceHistory) && cached.priceHistory.length && Array.isArray(cached.labels)) {
-      priceHistory = cached.priceHistory; candleLabels = cached.labels;
-      if (cached.volumeHistory) volumeHistory = cached.volumeHistory;
-      if (cached.ohlcHistory) ohlcHistory = cached.ohlcHistory;
-      renderPriceChart(cached.labels); renderCandlestickChart(); renderMacdChart();
-      usingFallbackHistory = false; usingCachedHistory = true;
-      updateDataBanner(); updateIndicators(); updateSafetyPanel();
-      return;
+    let rate = 1;
+    if (isShortTerm) {
+      const latestUsdtPrice = parseFloat(data[data.length - 1][4]);
+      if (currentPrice && latestUsdtPrice) {
+        rate = currentPrice / latestUsdtPrice;
+        currentUsdJpyRate = rate;
+      } else {
+        rate = currentUsdJpyRate;
+      }
     }
-    priceHistory = buildFallbackHistory(currentPrice || FALLBACK_PRICE.jpy);
-    volumeHistory = priceHistory.map(() => 0);
-    ohlcHistory = priceHistory.map(p => ({open: p, high: p*1.001, low: p*0.999, close: p}));
-    const stepMs = intervalMap[currentTF] * 60000;
-    const labels = priceHistory.map((_, i) => {
-      const dt = new Date(Date.now() - (priceHistory.length - 1 - i) * stepMs);
-      if (currentTF === '1d') return (dt.getMonth() + 1) + '/' + dt.getDate();
-      return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
-    });
-    candleLabels = labels;
-    renderPriceChart(labels); renderCandlestickChart(); renderMacdChart();
-    usingFallbackHistory = true; usingCachedHistory = false;
-    updateDataBanner(); updateIndicators(); updateSafetyPanel();
-  }
-}
 
     priceHistory = data.map(k => parseFloat(k[4]) * rate);
     volumeHistory = data.map(k => parseFloat(k[5]));
@@ -1785,6 +1755,7 @@ function updateOrderBook(bids, asks) {
   `).join('');
 }
 
+// ✅ あの時の「最強の爆速WebSocket（Binance）」に完全復活
 function initWebSocket() {
   if (ws) { ws.onclose = null; ws.close(); }
   const wsBadge = document.getElementById('ws-status');
@@ -1959,5 +1930,60 @@ window.addEventListener('load', () => {
   startAutoRefresh();
 });
 </script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
+
+  // 🔴 ここに「鍵①（firebaseConfig）」の中身を上書きしてください！
+  const firebaseConfig = {
+  apiKey: "AIzaSyADifxTaToaXXNOZe3eQy8vDvXazMYpnXo",
+  authDomain: "btc-alert-app.firebaseapp.com",
+  projectId: "btc-alert-app",
+  storageBucket: "btc-alert-app.firebasestorage.app",
+  messagingSenderId: "133245742001",
+  appId: "1:133245742001:web:57400351affca95901eb90",
+  measurementId: "G-KJ5BBLBESG"
+};
+
+  // 🔴 ここに「鍵②（VAPID_KEY）」を貼り付けてください！
+  const VAPID_KEY = "BGpquQOhcxTIAxIfdYW03Sga-NwAVdY6imdPCPldJha7KFZzB915tW65hGy6j4-tsJAve-ZoiYp_5f5U0GbVy4k";
+
+  const app = initializeApp(firebaseConfig);
+  const messaging = getMessaging(app);
+
+  window.fcmToken = null;
+
+  window.requestPushPermission = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+        const token = await getToken(messaging, { 
+          vapidKey: VAPID_KEY,
+          serviceWorkerRegistration: registration
+        });
+        if (token) {
+          window.fcmToken = token;
+          document.getElementById('push-status').textContent = '✅ プッシュ通知スタンバイOK';
+          document.getElementById('push-status').style.color = 'var(--green)';
+          showToast('通知の許可を取得しました！');
+        } else {
+          showToast('トークンの取得に失敗しました。');
+        }
+      } else {
+        showToast('通知がブロックされています。ブラウザの設定から許可してください。');
+      }
+    } catch (error) {
+      console.error('Error getting token', error);
+      showToast('エラーが発生しました: ' + error.message);
+    }
+  };
+
+  onMessage(messaging, (payload) => {
+    showToast(`🔔 ${payload.notification.title}: ${payload.notification.body}`);
+  });
+</script>
+
 </body>
 </html>
