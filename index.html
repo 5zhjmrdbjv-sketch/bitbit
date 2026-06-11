@@ -658,26 +658,10 @@ const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
 const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 
 window.addServerAlert = async function() {
-  // window.addServerAlert = async function() { の直後の部分を書き換え
   const method = document.getElementById('alert-method').value;
+  const dir = document.getElementById('alert-dir').value;
+  const price = Number(document.getElementById('alert-price').value);
   let target = '';
-
-  if (method === 'push') {
-    if (!window.fcmToken) { showToast('プッシュ通知を許可してください'); return; }
-    target = window.fcmToken;
-  } else if (method === 'line') {
-    if (liffUserId) {
-      target = liffUserId; // 🎯 自動取得したIDを使う！
-    } else {
-      target = document.getElementById('alert-target').value.trim();
-      if (!target) { showToast('LINEユーザーIDを入力してください'); return; }
-      localStorage.setItem('btc_line_id', target);
-    }
-  } else if (method === 'discord') {
-    target = document.getElementById('alert-target').value.trim();
-    if (!target) { showToast('DiscordのWebhook URLを入力してください'); return; }
-    localStorage.setItem('btc_discord_url', target);
-  }
 
   if (!Number.isFinite(price) || price <= 0) {
     showToast('価格を入力してください');
@@ -685,15 +669,21 @@ window.addServerAlert = async function() {
   }
 
   if (method === 'push') {
-    if (!window.fcmToken) { showToast('プッシュ通知を許可してください'); return; }
+    if (!window.fcmToken) {
+      showToast('プッシュ通知を許可してください');
+      return;
+    }
     target = window.fcmToken;
   } else if (method === 'line') {
-    // 公式LINE（LINELIFT）経由で送信するため、ユーザーID入力は不要。
+    // 公式LINE（LINELIFT）へ送るため、ユーザーIDは不要。
     target = 'official_line_lift';
     localStorage.removeItem('btc_line_id');
   } else if (method === 'discord') {
     target = document.getElementById('alert-target').value.trim();
-    if (!target) { showToast('DiscordのWebhook URLを入力してください'); return; }
+    if (!target) {
+      showToast('DiscordのWebhook URLを入力してください');
+      return;
+    }
     localStorage.setItem('btc_discord_url', target);
   }
 
