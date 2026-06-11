@@ -473,13 +473,21 @@
     <button class="btn" style="background:var(--blue);color:#fff;" onclick="requestPushPermission()">📲 まずはプッシュ通知を許可する</button>
   </div>
   
-  <div class="alert-form">
-    <select id="alert-dir">
-      <option value="above">↑ 上回ったら</option>
-      <option value="below">↓ 下回ったら</option>
-    </select>
+  <div class="alert-form" style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+    <div style="display: flex; gap: 8px;">
+      <select id="alert-method" onchange="toggleAlertTarget()" style="flex: 1;">
+        <option value="push">📱 スマホPush通知</option>
+        <option value="line">💬 LINE</option>
+        <option value="discord">🎮 Discord</option>
+      </select>
+      <select id="alert-dir" style="flex: 1;">
+        <option value="above">↑ 上回ったら</option>
+        <option value="below">↓ 下回ったら</option>
+      </select>
+    </div>
     <input type="number" id="alert-price" placeholder="価格 (例: 15000000)" step="10000" min="0" />
-    <button class="btn" onclick="addServerAlert()" style="white-space:nowrap; background: var(--blue); color: #fff; font-weight: bold;" id="btn-add-alert">＋ 追加</button>
+    <input type="text" id="alert-target" placeholder="送信先のIDやURLを入力" style="display: none;" />
+    <button class="btn" onclick="addServerAlert()" style="background: var(--blue); color: #fff; font-weight: bold; padding: 8px;" id="btn-add-alert">＋ 追加</button>
   </div>
   <div class="alert-list" id="alert-list">
     <div class="empty-hint">アラートはまだ設定されていません</div>
