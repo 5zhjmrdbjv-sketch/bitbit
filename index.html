@@ -1945,9 +1945,10 @@ window.addEventListener('load', () => {
   appId: "1:133245742001:web:57400351affca95901eb90",
   measurementId: "G-KJ5BBLBESG"
 };
-
+  
   // 🔴 ここに「鍵②（VAPID_KEY）」を貼り付けてください！
-  const VAPID_KEY = "BI4UdY_eKi2R2DuTGppvpkLzpTgT4WFiB6Q1rWzIo98u-fJfonGQ0j9FWRVOH8ROrLbpL-eZ1x-HCMKIqki3HpA";
+  const VAPID_KEY = "BGpquQOhcxTIAxIfdYW03Sga-NwAVdY6imdPCPldJha7KFZzB915tW65hGy6j4-tsJAve-ZoiYp_5f5U0GbVy4k";
+
   const app = initializeApp(firebaseConfig);
   const messaging = getMessaging(app);
 
@@ -1957,13 +1958,11 @@ window.addEventListener('load', () => {
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        // 👇 ここがGitHub Pages用の超重要修正！明示的にファイルの場所を教える
         const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
         const token = await getToken(messaging, { 
           vapidKey: VAPID_KEY,
-          serviceWorkerRegistration: registration // ← これを追加
+          serviceWorkerRegistration: registration
         });
-        
         if (token) {
           window.fcmToken = token;
           document.getElementById('push-status').textContent = '✅ プッシュ通知スタンバイOK';
@@ -1980,6 +1979,7 @@ window.addEventListener('load', () => {
       showToast('エラーが発生しました: ' + error.message);
     }
   };
+
   onMessage(messaging, (payload) => {
     showToast(`🔔 ${payload.notification.title}: ${payload.notification.body}`);
   });
