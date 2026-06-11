@@ -1957,11 +1957,13 @@ window.addEventListener('load', () => {
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
+        // 👇 ここがGitHub Pages用の超重要修正！明示的にファイルの場所を教える
         const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
         const token = await getToken(messaging, { 
           vapidKey: VAPID_KEY,
-          serviceWorkerRegistration: registration
+          serviceWorkerRegistration: registration // ← これを追加
         });
+        
         if (token) {
           window.fcmToken = token;
           document.getElementById('push-status').textContent = '✅ プッシュ通知スタンバイOK';
@@ -1978,7 +1980,6 @@ window.addEventListener('load', () => {
       showToast('エラーが発生しました: ' + error.message);
     }
   };
-
   onMessage(messaging, (payload) => {
     showToast(`🔔 ${payload.notification.title}: ${payload.notification.body}`);
   });
