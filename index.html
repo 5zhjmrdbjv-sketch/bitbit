@@ -664,6 +664,63 @@ const RR_TOGGLE_KEY = 'btc_show_rr_lines';
 const PRED_TOGGLE_KEY = 'btc_show_pred_band';
 const PRICE_CACHE_MAX_AGE = 30 * 60 * 1000;
 const HISTORY_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
+
+window.addServerAlert = async function() {
+  const method = document.getElementById('alert-method').value;
+  let target = '';
+
+  // 通知手段ごとに必要な宛先（target）を準備する
+  if (method === 'push') {
+    if (!window.fcmToken) { showToast('プッシュ通知を許可してください'); return; }
+    target = window.fcmToken;
+  } else if (method === 'line') {
+    if (liffUserId) {
+      target = liffUserId; // 🎯 自動取得したIDを使う！
+    } else {
+      target = document.getElementById('alert-target').value.trim();
+      if (!target) { showToast('LINEユーザーIDを入力してください'); return; }
+      localStorage.setItem('btc_line_id', target); // 次回から自動入力させる
+    }
+  } else if (method === 'discord') {
+    target = document.getElementById('alert-target').value.trim();
+    if (!target) { showToast('DiscordのWebhook URLを入力してください'); return; }
+    localStorage.setItem('btc_discord_url', target); // 次回から自動入力させる
+  }
+
+  // 🎯 カンマや記号を自動で取り除く最強の価格取得ロジック
+  const dir = document.getElementById('alert-dir').value;
+  const rawPriceStr = document.getElementById('alert-price').value;
+  const price = parseFloat(rawPriceStr.replace(/[^0-9.]/g, '')); 
+  if (!price || isNaN(price) || price <= 0) { showToast('価格を正しく入力してください'); return; }
+
+  const btn = document.getElementById('btn-add-alert');
+  btn.textContent = '送信中...';
+  btn.disabled = true;
+
+  try {
+    // GASへ method（手段）と target（宛先）も一緒に送信
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ method: method, target: target, dir: dir, price: price }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+    });
+
+    // 画面のリストに追加（アイコン付き）
+    const methodIcon = method === 'push' ? '📱' : method === 'line' ? '💬' : '🎮';
+    alerts.push({ dir, price, id: Date.now(), triggered: false, icon: methodIcon });
+    saveAlerts();
+    renderAlerts();
+    document.getElementById('alert-price').value = '';
+    showToast(`✅ ${method.toUpperCase()} アラートを登録しました！`);
+  } catch (e) {
+    showToast('❌ 登録に失敗しました。');
+    console.error(e);
+  } finally {
+    btn.textContent = '＋ 追加';
+    btn.disabled = false;
+  }
+}
+// 👆 ここまで上書き！下にある「const dir = ...」等の余計なコードは完全に消すこと！
   
 function buildFallbackHistory(basePrice = 10450000) {
   const raw = Array.from({ length: 96 }, (_, i) => {
